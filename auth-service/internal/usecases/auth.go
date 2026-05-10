@@ -50,6 +50,52 @@ func (a *AuthUC) FrontendBase() string {
 	return a.frontendURL
 }
 
+// returnToPath нормализует return_to до пути на фронте (/...), в т.ч. из полного URL того же origin.
+func (a *AuthUC) returnToPath(returnTo string) string {
+	rt := strings.TrimSpace(returnTo)
+	if rt == "" {
+		return "/"
+	}
+	if strings.HasPrefix(rt, "/") {
+		return rt
+	}
+	u, err := url.Parse(rt)
+	if err != nil || !u.IsAbs() {
+		return "/" + strings.TrimPrefix(rt, "/")
+	}
+	f, err := url.Parse(a.frontendURL)
+	if err != nil {
+		return "/"
+	}
+	if !strings.EqualFold(u.Scheme, f.Scheme) || u.Host != f.Host {
+		return "/"
+	}
+	path := u.EscapedPath()
+	if path == "" {
+		path = "/"
+	}
+	if u.RawQuery != "" {
+		path += "?" + u.RawQuery
+	}
+	if u.Fragment != "" {
+		path += "#" + u.Fragment
+	}
+	return path
+}
+
+// PostLoginRedirectURL абсолютный URL фронта после успешного входа.
+func (a *AuthUC) PostLoginRedirectURL(returnTo string) string {
+	base := strings.TrimRight(a.frontendURL, "/")
+	path := a.returnToPath(returnTo)
+	if path == "" {
+		path = "/"
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return base + path
+}
+
 // oauthStatePayload данные в подписанном query-параметре OAuth state (без cookie).
 // Cookie oauth_pkce ломалась при несовпадении хоста входа и redirect_uri (localhost vs LAN, 127.0.0.1).
 type oauthStatePayload struct {
@@ -64,6 +110,10 @@ func (a *AuthUC) BuildAuthorizeURL(returnTo string) (authorizeURL string, err er
 	if err != nil {
 		return "", err
 	}
+	if returnTo == "" {
+		returnTo = "/"
+	}
+	returnTo = a.returnToPath(returnTo)
 	if returnTo == "" {
 		returnTo = "/"
 	}

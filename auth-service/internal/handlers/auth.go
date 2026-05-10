@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -97,12 +96,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	if tokens.IDToken != "" {
 		setTokenCookie(c, middleware.CookieIDToken, tokens.IDToken, refreshMax, h.secure)
 	}
-	loc := h.auth.FrontendBase()
-	if strings.HasPrefix(returnTo, "/") {
-		loc += returnTo
-	} else {
-		loc += "/" + returnTo
-	}
+	loc := h.auth.PostLoginRedirectURL(returnTo)
 	c.Redirect(http.StatusFound, loc)
 }
 

@@ -20,7 +20,8 @@ type TokenPair struct {
 type KeycloakClient interface {
 	LoginAdmin(ctx context.Context) (*gocloak.JWT, error)
 	EnsureRealmAndRoles(ctx context.Context, token string) error
-	EnsureOAuthClient(ctx context.Context, token string, redirectURI string) (string, error)
+	// postLogoutRedirectURIs — атрибут Keycloak post.logout.redirect.uris (через ## несколько шаблонов).
+	EnsureOAuthClient(ctx context.Context, token string, redirectURI string, postLogoutRedirectURIs string) (string, error)
 	CreateGroup(ctx context.Context, token, name string, attrs map[string][]string) (string, error)
 	DeleteGroup(ctx context.Context, token, groupID string) error
 	GetGroupByPath(ctx context.Context, token, path string) (*gocloak.Group, error)

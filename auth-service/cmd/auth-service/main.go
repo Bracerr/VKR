@@ -76,6 +76,7 @@ func main() {
 
 	kc := kcclient.NewClient(
 		cfg.KeycloakURL,
+		cfg.KeycloakPublicURL,
 		cfg.KeycloakRealm,
 		cfg.KeycloakClientID,
 		cfg.KeycloakClientSecret,
@@ -95,7 +96,8 @@ func main() {
 		os.Exit(1)
 	}
 	cb := fmt.Sprintf("%s/api/v1/auth/callback", strings.TrimRight(strings.TrimSpace(cfg.APIPublicURL), "/"))
-	if _, err := kc.EnsureOAuthClient(ctx, admTok, cb); err != nil {
+	postLogout := kcclient.BuildPostLogoutRedirectURIs(cfg.FrontendURL)
+	if _, err := kc.EnsureOAuthClient(ctx, admTok, cb, postLogout); err != nil {
 		log.Error("keycloak_bootstrap_client", "error", err.Error())
 		os.Exit(1)
 	}
