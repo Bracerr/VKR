@@ -69,5 +69,6 @@ services:
       DB_DSN: postgres://auth:auth@postgres:5432/auth?sslmode=disable
     env_file:
       - .env
+    # Публичный API для браузера — через dev-gateway на :8080 (см. VKR/dev-gateway).
     ports:
-      - "8080:8080"
+      - "18080:8080"

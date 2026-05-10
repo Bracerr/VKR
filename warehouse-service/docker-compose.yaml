@@ -24,5 +24,7 @@ services:
     environment:
       CONFIG_PATH: /app/configs/docker.yaml
       DB_DSN: postgres://wh:wh@postgres:5432/warehouse?sslmode=disable
+      # Должен совпадать с WAREHOUSE_SERVICE_SECRET у sed-service / production / procurement.
+      SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-e2e-warehouse-service-secret}
     ports:
       - "8090:8090"

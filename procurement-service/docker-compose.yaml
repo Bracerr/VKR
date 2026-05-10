@@ -9,6 +9,11 @@ services:
       - "5436:5432"
     volumes:
       - proc_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proc -d procurement"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   procurement-service:
     build: .
@@ -19,11 +24,12 @@ services:
       DB_DSN: postgres://proc:proc@proc-db:5432/procurement?sslmode=disable
       KEYCLOAK_URL: http://host.docker.internal:8081
       WAREHOUSE_BASE_URL: http://host.docker.internal:8090
-      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-dev-secret}
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-e2e-warehouse-service-secret}
       SED_BASE_URL: http://host.docker.internal:8091
       SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_VERIFY_SECRET:-dev-secret}
     depends_on:
-      - proc-db
+      proc-db:
+        condition: service_healthy
 
 volumes:
   proc_pg:

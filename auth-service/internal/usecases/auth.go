@@ -50,36 +50,31 @@ func (a *AuthUC) FrontendBase() string {
 	return a.frontendURL
 }
 
-// oauthCookiePayload данные в подписанной cookie PKCE.
-type oauthCookiePayload struct {
-	State     string `json:"s"`
+// oauthStatePayload данные в подписанном query-параметре OAuth state (без cookie).
+// Cookie oauth_pkce ломалась при несовпадении хоста входа и redirect_uri (localhost vs LAN, 127.0.0.1).
+type oauthStatePayload struct {
 	Verifier  string `json:"v"`
 	ReturnTo  string `json:"r"`
 	ExpiresAt int64  `json:"e"`
 }
 
-// BuildAuthorizeURL генерирует state/verifier и URL редиректа на Keycloak.
-func (a *AuthUC) BuildAuthorizeURL(returnTo string) (authorizeURL, signedCookie string, err error) {
+// BuildAuthorizeURL генерирует URL редиректа на Keycloak (PKCE + подписанный state).
+func (a *AuthUC) BuildAuthorizeURL(returnTo string) (authorizeURL string, err error) {
 	verifier, err := randomVerifier(64)
 	if err != nil {
-		return "", "", err
-	}
-	state, err := randomVerifier(32)
-	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	if returnTo == "" {
 		returnTo = "/"
 	}
-	pl := oauthCookiePayload{
-		State:     state,
+	pl := oauthStatePayload{
 		Verifier:  verifier,
 		ReturnTo:  returnTo,
 		ExpiresAt: time.Now().Add(10 * time.Minute).Unix(),
 	}
-	signedCookie, err = a.signPayload(pl)
+	signedState, err := a.signPayload(pl)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	challenge := pkceChallengeS256(verifier)
 	q := url.Values{}
@@ -87,21 +82,18 @@ func (a *AuthUC) BuildAuthorizeURL(returnTo string) (authorizeURL, signedCookie 
 	q.Set("response_type", "code")
 	q.Set("scope", "openid profile email")
 	q.Set("redirect_uri", a.callbackRedirect)
-	q.Set("state", state)
+	q.Set("state", signedState)
 	q.Set("code_challenge", challenge)
 	q.Set("code_challenge_method", "S256")
 	authURL := a.issuer + "/protocol/openid-connect/auth?" + q.Encode()
-	return authURL, signedCookie, nil
+	return authURL, nil
 }
 
-// ExchangeCallback проверяет state, обменивает code на токены.
-func (a *AuthUC) ExchangeCallback(ctx context.Context, code, state, rawCookie string) (*ports.TokenPair, string, error) {
-	pl, err := a.verifyPayload(rawCookie)
+// ExchangeCallback проверяет подписанный state, обменивает code на токены.
+func (a *AuthUC) ExchangeCallback(ctx context.Context, code, signedState string) (*ports.TokenPair, string, error) {
+	pl, err := a.verifyPayload(signedState)
 	if err != nil {
 		return nil, "", err
-	}
-	if pl.State != state {
-		return nil, "", fmt.Errorf("%w: state mismatch", ErrUnauthorized)
 	}
 	if time.Now().Unix() > pl.ExpiresAt {
 		return nil, "", fmt.Errorf("%w: state expired", ErrUnauthorized)
@@ -161,7 +153,7 @@ func pkceChallengeS256(verifier string) string {
 	return base64.RawURLEncoding.EncodeToString(h[:])
 }
 
-func (a *AuthUC) signPayload(pl oauthCookiePayload) (string, error) {
+func (a *AuthUC) signPayload(pl oauthStatePayload) (string, error) {
 	raw, err := json.Marshal(pl)
 	if err != nil {
 		return "", err
@@ -173,10 +165,10 @@ func (a *AuthUC) signPayload(pl oauthCookiePayload) (string, error) {
 	return payload + "." + sig, nil
 }
 
-func (a *AuthUC) verifyPayload(cookie string) (*oauthCookiePayload, error) {
-	parts := strings.Split(cookie, ".")
+func (a *AuthUC) verifyPayload(signed string) (*oauthStatePayload, error) {
+	parts := strings.Split(signed, ".")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("%w: bad cookie", ErrUnauthorized)
+		return nil, fmt.Errorf("%w: bad state", ErrUnauthorized)
 	}
 	payload, sig := parts[0], parts[1]
 	mac := hmac.New(sha256.New, a.cookieSecret)
@@ -190,7 +182,7 @@ func (a *AuthUC) verifyPayload(cookie string) (*oauthCookiePayload, error) {
 	if err != nil {
 		return nil, err
 	}
-	var pl oauthCookiePayload
+	var pl oauthStatePayload
 	if err := json.Unmarshal(raw, &pl); err != nil {
 		return nil, err
 	}

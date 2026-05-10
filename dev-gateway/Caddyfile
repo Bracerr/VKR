@@ -1,0 +1,86 @@
+# Единая точка входа API для ds-erp-client: http://localhost:8080
+# Бэкенды на хосте (сервисы в отдельных compose). Auth слушает :18080, см. auth-service/docker-compose.yaml.
+
+:8080 {
+	# auth-service
+	handle /api/v1/auth* {
+		reverse_proxy host.docker.internal:18080
+	}
+	handle /api/v1/tenants* {
+		reverse_proxy host.docker.internal:18080
+	}
+	handle /api/v1/users* {
+		reverse_proxy host.docker.internal:18080
+	}
+	handle /api/v1/internal* {
+		reverse_proxy host.docker.internal:18080
+	}
+
+	# production-service (MES)
+	handle /api/v1/me/shift-tasks* {
+		reverse_proxy host.docker.internal:8092
+	}
+	handle /api/v1/workcenters* {
+		reverse_proxy host.docker.internal:8092
+	}
+	handle /api/v1/scrap-reasons* {
+		reverse_proxy host.docker.internal:8092
+	}
+	handle /api/v1/boms* {
+		reverse_proxy host.docker.internal:8092
+	}
+	handle /api/v1/routings* {
+		reverse_proxy host.docker.internal:8092
+	}
+	handle /api/v1/orders* {
+		reverse_proxy host.docker.internal:8092
+	}
+	handle /api/v1/shift-tasks* {
+		reverse_proxy host.docker.internal:8092
+	}
+
+	# procurement-service
+	handle /api/v1/suppliers* {
+		reverse_proxy host.docker.internal:8093
+	}
+	handle /api/v1/purchase-requests* {
+		reverse_proxy host.docker.internal:8093
+	}
+	handle /api/v1/purchase-orders* {
+		reverse_proxy host.docker.internal:8093
+	}
+
+	# sed-service
+	handle /api/v1/document-types* {
+		reverse_proxy host.docker.internal:8091
+	}
+	handle /api/v1/workflows* {
+		reverse_proxy host.docker.internal:8091
+	}
+	handle /api/v1/workflow-steps* {
+		reverse_proxy host.docker.internal:8091
+	}
+	handle /api/v1/documents* {
+		reverse_proxy host.docker.internal:8091
+	}
+	handle /api/v1/tasks {
+		reverse_proxy host.docker.internal:8091
+	}
+	handle /api/v1/tasks/* {
+		reverse_proxy host.docker.internal:8091
+	}
+
+	# warehouse-service — всё остальное под /api/v1
+	handle /api/v1/* {
+		reverse_proxy host.docker.internal:8090
+	}
+
+	handle /health {
+		reverse_proxy host.docker.internal:18080
+	}
+	handle /ready {
+		reverse_proxy host.docker.internal:18080
+	}
+
+	respond 404
+}

@@ -1,0 +1,12 @@
+# Шлюз для локальной разработки: единый http://localhost:8080 для ds-erp-client.
+# Перед запуском поднимите auth-service (порт auth на хосте 18080), warehouse, sed, production, procurement.
+
+services:
+  gateway:
+    image: caddy:2.8-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
