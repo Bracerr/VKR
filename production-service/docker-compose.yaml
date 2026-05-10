@@ -1,0 +1,29 @@
+services:
+  prod-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: prod
+      POSTGRES_PASSWORD: prod
+      POSTGRES_DB: prod
+    ports:
+      - "5435:5432"
+    volumes:
+      - prod_pg:/var/lib/postgresql/data
+
+  production-service:
+    build: .
+    ports:
+      - "8092:8092"
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      DB_DSN: postgres://prod:prod@prod-db:5432/prod?sslmode=disable
+      KEYCLOAK_URL: http://host.docker.internal:8081
+      WAREHOUSE_BASE_URL: http://host.docker.internal:8090
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-dev-secret}
+      SED_BASE_URL: http://host.docker.internal:8091
+      SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_VERIFY_SECRET:-dev-secret}
+    depends_on:
+      - prod-db
+
+volumes:
+  prod_pg:

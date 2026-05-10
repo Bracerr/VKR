@@ -1,0 +1,15 @@
+DROP TABLE IF EXISTS idempotency_keys;
+DROP TABLE IF EXISTS import_jobs;
+DROP TABLE IF EXISTS stock_balances;
+DROP TABLE IF EXISTS stock_movements;
+DROP TABLE IF EXISTS reservations;
+DROP TABLE IF EXISTS inventory_lines;
+DROP TABLE IF EXISTS document_lines;
+DROP TABLE IF EXISTS documents;
+DROP TABLE IF EXISTS product_prices;
+DROP TABLE IF EXISTS serial_numbers;
+DROP TABLE IF EXISTS batches;
+DROP TABLE IF EXISTS bins;
+DROP TABLE IF EXISTS warehouses;
+DROP TABLE IF EXISTS products;
+DROP FUNCTION IF EXISTS wh_nil_batch;

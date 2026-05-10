@@ -1,0 +1,37 @@
+http_addr: ":8080"
+log_level: "info"
+
+# В Docker auth-service ходит к Keycloak по имени сервиса.
+keycloak_url: "http://keycloak:8080"
+# А браузер пользователя открывает Keycloak по проброшенному порту.
+keycloak_public_url: "http://localhost:8081"
+keycloak_admin_realm: "master"
+keycloak_admin_user: "admin"
+keycloak_realm: "industrial-sed"
+keycloak_client_id: "auth-service"
+
+frontend_url: "http://localhost:3000"
+api_public_url: "http://localhost:8080"
+
+enable_test_endpoints: true
+
+bootstrap_superadmin: true
+bootstrap_superadmin_username: "superadmin"
+
+notifier_type: "mock"
+kafka_brokers: ["kafka:9092"]
+kafka_topic_user_events: "user.events"
+
+auth_login_rate_limit: 30
+
+otel_enabled: false
+otel_service_name: "auth-service"
+otel_exporter_otlp_endpoint: "http://localhost:4318"
+
+run_migrations_on_start: true
+
+# Принудительная смена пароля (вариант A)
+password_rotation_enabled: false
+password_rotation_after: 168h
+password_rotation_every: 10m
+password_rotation_batch: 200

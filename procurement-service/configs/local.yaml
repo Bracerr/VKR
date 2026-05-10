@@ -1,0 +1,13 @@
+http_addr: ":8093"
+log_level: info
+db_dsn: ${DB_DSN}
+keycloak_url: http://localhost:8081
+keycloak_realm: industrial-sed
+keycloak_client_id: auth-service
+run_migrations_on_start: true
+rate_limit_per_minute: 120
+warehouse_base_url: http://localhost:8090
+warehouse_service_secret: ${WAREHOUSE_SERVICE_SECRET}
+sed_base_url: http://localhost:8091
+sed_callback_verify_secret: ${SED_CALLBACK_VERIFY_SECRET}
+

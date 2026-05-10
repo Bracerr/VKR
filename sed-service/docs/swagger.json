@@ -1,0 +1,19 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Электронный документооборот и интеграция со складом",
+        "title": "SED Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8091",
+    "basePath": "/api/v1",
+    "paths": {},
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

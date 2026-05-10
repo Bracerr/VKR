@@ -1,0 +1,10 @@
+/bin/
+/dist/
+*.exe
+.env
+.idea/
+.vscode/
+*.swp
+coverage.out
+coverage.html
+vendor/

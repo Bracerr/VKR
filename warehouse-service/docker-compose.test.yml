@@ -1,0 +1,15 @@
+# Заготовка для CI/e2e: только БД склада (порт 5440 на хосте).
+services:
+  warehouse-test-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wh
+      POSTGRES_PASSWORD: wh
+      POSTGRES_DB: warehouse_test
+    ports:
+      - "5440:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wh -d warehouse_test"]
+      interval: 3s
+      timeout: 5s
+      retries: 10

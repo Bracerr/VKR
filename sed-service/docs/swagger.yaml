@@ -1,0 +1,14 @@
+basePath: /api/v1
+host: localhost:8091
+info:
+  contact: {}
+  description: Электронный документооборот и интеграция со складом
+  title: SED Service API
+  version: "1.0"
+paths: {}
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

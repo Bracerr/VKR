@@ -1,0 +1,249 @@
+# Полный стенд для pytest (из каталога VKR: docker compose -f sed-service/e2e_tests/docker-compose.test.yml up --build -d).
+# Порты не пересекаются с dev (28080 auth, 28090 wh, 28091 sed, 28081 KC).
+services:
+  pg-auth:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD: auth
+      POSTGRES_DB: auth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth -d auth"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [e2e]
+
+  pg-wh:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wh
+      POSTGRES_PASSWORD: wh
+      POSTGRES_DB: warehouse
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wh -d warehouse"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [e2e]
+
+  pg-sed:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sed
+      POSTGRES_PASSWORD: sed
+      POSTGRES_DB: sed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sed -d sed"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [e2e]
+
+  pg-prod:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: prod
+      POSTGRES_PASSWORD: prod
+      POSTGRES_DB: prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prod -d prod"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [e2e]
+
+  pg-proc:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: proc
+      POSTGRES_PASSWORD: proc
+      POSTGRES_DB: procurement
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proc -d procurement"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [e2e]
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+    ports:
+      - "29000:9000"
+      - "29001:9001"
+    networks: [e2e]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    command: ["start-dev", "--http-enabled=true", "--hostname-strict=false"]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "28081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo >/dev/tcp/127.0.0.1/8080'"]
+      interval: 5s
+      timeout: 3s
+      retries: 36
+      start_period: 120s
+    networks: [e2e]
+
+  auth-service:
+    build:
+      context: ../../auth-service
+      dockerfile: Dockerfile
+    depends_on:
+      pg-auth:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    restart: on-failure:5
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      HTTP_ADDR: ":8080"
+      LOG_LEVEL: debug
+      DB_DSN: postgres://auth:auth@pg-auth:5432/auth?sslmode=disable
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: http://localhost:28081
+      KEYCLOAK_ADMIN_REALM: master
+      KEYCLOAK_ADMIN_USER: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_REALM: industrial-sed
+      KEYCLOAK_CLIENT_ID: auth-service
+      KEYCLOAK_CLIENT_SECRET: dev-client-secret-change-me
+      FRONTEND_URL: http://localhost:3000
+      API_PUBLIC_URL: http://localhost:28080
+      SERVICE_SECRET: e2e-service-secret
+      TEST_SECRET: e2e-test-secret
+      STATE_COOKIE_SECRET: "0123456789abcdef0123456789abcdef"
+      ENABLE_TEST_ENDPOINTS: "true"
+      BOOTSTRAP_SUPERADMIN: "true"
+      BOOTSTRAP_SUPERADMIN_USERNAME: superadmin
+      BOOTSTRAP_SUPERADMIN_PASSWORD: superadmin
+      NOTIFIER_TYPE: mock
+      RUN_MIGRATIONS_ON_START: "true"
+      OTEL_ENABLED: "false"
+    ports:
+      - "28080:8080"
+    networks: [e2e]
+
+  warehouse-service:
+    build:
+      context: ../../warehouse-service
+      dockerfile: Dockerfile
+    depends_on:
+      pg-wh:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    restart: on-failure:5
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      DB_DSN: postgres://wh:wh@pg-wh:5432/warehouse?sslmode=disable
+      KEYCLOAK_URL: http://keycloak:8080
+      SERVICE_SECRET: sed-e2e-wh-secret
+    ports:
+      - "28090:8090"
+    networks: [e2e]
+
+  production-service:
+    build:
+      context: ../../production-service
+      dockerfile: Dockerfile
+    depends_on:
+      pg-prod:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      warehouse-service:
+        condition: service_started
+    restart: on-failure:5
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      HTTP_ADDR: ":8092"
+      LOG_LEVEL: debug
+      DB_DSN: postgres://prod:prod@pg-prod:5432/prod?sslmode=disable
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: industrial-sed
+      KEYCLOAK_CLIENT_ID: auth-service
+      RUN_MIGRATIONS_ON_START: "true"
+      WAREHOUSE_BASE_URL: http://warehouse-service:8090
+      WAREHOUSE_SERVICE_SECRET: sed-e2e-wh-secret
+      SED_BASE_URL: http://sed-service:8091
+      SED_CALLBACK_VERIFY_SECRET: e2e-prod-callback-secret
+    ports:
+      - "28092:8092"
+    networks: [e2e]
+
+  procurement-service:
+    build:
+      context: ../../procurement-service
+      dockerfile: Dockerfile
+    depends_on:
+      pg-proc:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      warehouse-service:
+        condition: service_started
+      sed-service:
+        condition: service_started
+    restart: on-failure:5
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      HTTP_ADDR: ":8093"
+      LOG_LEVEL: debug
+      DB_DSN: postgres://proc:proc@pg-proc:5432/procurement?sslmode=disable
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: industrial-sed
+      KEYCLOAK_CLIENT_ID: auth-service
+      RUN_MIGRATIONS_ON_START: "true"
+      WAREHOUSE_BASE_URL: http://warehouse-service:8090
+      WAREHOUSE_SERVICE_SECRET: sed-e2e-wh-secret
+      SED_BASE_URL: http://sed-service:8091
+      SED_CALLBACK_VERIFY_SECRET: e2e-proc-callback-secret
+    ports:
+      - "28093:8093"
+    networks: [e2e]
+
+  sed-service:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      pg-sed:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      warehouse-service:
+        condition: service_healthy
+      production-service:
+        condition: service_started
+    restart: on-failure:5
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      DB_DSN: postgres://sed:sed@pg-sed:5432/sed?sslmode=disable
+      WAREHOUSE_SERVICE_SECRET: sed-e2e-wh-secret
+      KEYCLOAK_URL: http://keycloak:8080
+      PRODUCTION_CALLBACK_URL: http://production-service:8092
+      PRODUCTION_CALLBACK_SECRET: e2e-prod-callback-secret
+      PROCUREMENT_CALLBACK_URL: http://procurement-service:8093
+      PROCUREMENT_CALLBACK_SECRET: e2e-proc-callback-secret
+    ports:
+      - "28091:8091"
+    networks: [e2e]
+
+networks:
+  e2e:
+    driver: bridge

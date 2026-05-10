@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sed
+      POSTGRES_PASSWORD: sed
+      POSTGRES_DB: sed
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sed -d sed"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio12345
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  sed-service:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      DB_DSN: postgres://sed:sed@postgres:5432/sed?sslmode=disable
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-e2e-warehouse-service-secret}
+      WAREHOUSE_BASE_URL: ${WAREHOUSE_BASE_URL:-http://host.docker.internal:8090}
+    ports:
+      - "8091:8091"

@@ -1,0 +1,12 @@
+-- Пример типов документов для согласования BOM/маршрутов в sed-service (подставьте свой tenant_code и UUID workflow).
+-- Выполнять вручную или через API sed_admin после создания workflow.
+--
+-- INSERT INTO document_types (id, tenant_code, code, name, warehouse_action, default_workflow_id)
+-- VALUES (
+--   gen_random_uuid(),
+--   'your_tenant',
+--   'BOM_APPROVAL',
+--   'Утверждение спецификации',
+--   'NONE',
+--   '<workflow_uuid>'
+-- );

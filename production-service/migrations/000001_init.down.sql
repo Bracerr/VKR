@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS production_history;
+DROP TABLE IF EXISTS production_reports;
+DROP TABLE IF EXISTS shift_tasks;
+DROP TABLE IF EXISTS production_order_operations;
+DROP TABLE IF EXISTS production_orders;
+DROP TABLE IF EXISTS routing_operations;
+DROP TABLE IF EXISTS routings;
+DROP TABLE IF EXISTS bom_lines;
+DROP TABLE IF EXISTS boms;
+DROP TABLE IF EXISTS scrap_reasons;
+DROP TABLE IF EXISTS workcenters;

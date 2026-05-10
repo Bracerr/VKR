@@ -1,0 +1,15 @@
+http_addr: ":8090"
+log_level: "info"
+
+# JWKS: тот же Keycloak, что и у auth-service (с хоста машины)
+keycloak_url: "http://host.docker.internal:8081"
+keycloak_realm: "industrial-sed"
+keycloak_client_id: "auth-service"
+
+default_currency: "RUB"
+
+run_migrations_on_start: true
+
+rate_limit_per_minute: 120
+
+import_max_rows: 10000

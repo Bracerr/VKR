@@ -1,0 +1,8 @@
+# Этот файл оставлен для обратной совместимости.
+# Рекомендуемый подход: используйте YAML из `configs/` + секреты в `.env`.
+#
+# Локально:
+#   CONFIG_PATH=./configs/local.yaml make run
+#
+# Docker Compose:
+#   CONFIG_PATH=/app/configs/docker.yaml docker compose up -d --build

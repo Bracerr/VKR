@@ -1,0 +1,14 @@
+basePath: /api/v1
+host: localhost:8090
+info:
+  contact: {}
+  description: 'Склад: справочники, операции, резервы, отчёты'
+  title: Warehouse Service API
+  version: "1.0"
+paths: {}
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

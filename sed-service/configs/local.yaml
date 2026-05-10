@@ -1,0 +1,17 @@
+http_addr: ":8091"
+log_level: "info"
+db_dsn: "postgres://sed:sed@localhost:5434/sed?sslmode=disable"
+keycloak_url: "http://localhost:8081"
+keycloak_realm: "industrial-sed"
+keycloak_client_id: "auth-service"
+run_migrations_on_start: true
+rate_limit_per_minute: 120
+
+minio_endpoint: "localhost:9000"
+minio_access_key: "minio"
+minio_secret_key: "minio12345"
+minio_bucket: "sed-files"
+minio_use_ssl: false
+
+warehouse_base_url: "http://localhost:8090"
+warehouse_service_secret: ""
