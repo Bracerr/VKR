@@ -11,12 +11,18 @@ import (
 	"github.com/industrial-sed/procurement-service/internal/models"
 )
 
-const CtxClaimsKey = "claims"
+const (
+	CtxClaimsKey      = "claims"
+	CookieAccessToken = "access_token"
+)
 
 // JWTAuth Bearer JWT.
 func JWTAuth(parser *jwtverify.Parser) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		raw := extractBearer(c.GetHeader("Authorization"))
+		if raw == "" {
+			raw, _ = c.Cookie(CookieAccessToken)
+		}
 		if raw == "" {
 			httpx.ErrorJSON(c, http.StatusUnauthorized, "требуется авторизация", http.StatusUnauthorized)
 			c.Abort()

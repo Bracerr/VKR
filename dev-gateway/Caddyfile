@@ -18,61 +18,95 @@
 
 	# production-service (MES)
 	handle /api/v1/me/shift-tasks* {
-		reverse_proxy host.docker.internal:8092
+		reverse_proxy host.docker.internal:8092 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/workcenters* {
-		reverse_proxy host.docker.internal:8092
+		reverse_proxy host.docker.internal:8092 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/scrap-reasons* {
-		reverse_proxy host.docker.internal:8092
+		reverse_proxy host.docker.internal:8092 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/boms* {
-		reverse_proxy host.docker.internal:8092
+		reverse_proxy host.docker.internal:8092 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/routings* {
-		reverse_proxy host.docker.internal:8092
+		reverse_proxy host.docker.internal:8092 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/orders* {
-		reverse_proxy host.docker.internal:8092
+		reverse_proxy host.docker.internal:8092 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/shift-tasks* {
-		reverse_proxy host.docker.internal:8092
+		reverse_proxy host.docker.internal:8092 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 
 	# procurement-service
 	handle /api/v1/suppliers* {
-		reverse_proxy host.docker.internal:8093
+		reverse_proxy host.docker.internal:8093 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/purchase-requests* {
-		reverse_proxy host.docker.internal:8093
+		reverse_proxy host.docker.internal:8093 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/purchase-orders* {
-		reverse_proxy host.docker.internal:8093
+		reverse_proxy host.docker.internal:8093 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 
 	# sed-service
 	handle /api/v1/document-types* {
-		reverse_proxy host.docker.internal:8091
+		reverse_proxy host.docker.internal:8091 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/workflows* {
-		reverse_proxy host.docker.internal:8091
+		reverse_proxy host.docker.internal:8091 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/workflow-steps* {
-		reverse_proxy host.docker.internal:8091
+		reverse_proxy host.docker.internal:8091 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/documents* {
-		reverse_proxy host.docker.internal:8091
+		reverse_proxy host.docker.internal:8091 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/tasks {
-		reverse_proxy host.docker.internal:8091
+		reverse_proxy host.docker.internal:8091 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 	handle /api/v1/tasks/* {
-		reverse_proxy host.docker.internal:8091
+		reverse_proxy host.docker.internal:8091 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 
 	# warehouse-service — всё остальное под /api/v1
 	handle /api/v1/* {
-		reverse_proxy host.docker.internal:8090
+		reverse_proxy host.docker.internal:8090 {
+			header_up Authorization "Bearer {http.request.cookie.access_token}"
+		}
 	}
 
 	handle /health {
