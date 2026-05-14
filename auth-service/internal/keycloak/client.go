@@ -15,9 +15,12 @@ import (
 )
 
 // Client обёртка над gocloak и token endpoint.
+// baseURL — URL Keycloak для серверных запросов (в Docker часто http://keycloak:8080).
+// browserBaseURL — URL Keycloak в браузере (например http://localhost:8081); для end_session.
 type Client struct {
 	gc               *gocloak.GoCloak
 	baseURL          string
+	browserBaseURL   string
 	realm            string
 	clientID         string
 	clientSecret     string
@@ -28,18 +31,24 @@ type Client struct {
 }
 
 // NewClient создаёт клиент Keycloak.
-func NewClient(baseURL, realm, clientID, clientSecret, adminRealm, adminUser, adminPassword string) *Client {
+// browserBaseURL может быть пустым — тогда совпадает с baseURL.
+func NewClient(baseURL, browserBaseURL, realm, clientID, clientSecret, adminRealm, adminUser, adminPassword string) *Client {
 	baseURL = strings.TrimRight(baseURL, "/")
+	browserBaseURL = strings.TrimRight(strings.TrimSpace(browserBaseURL), "/")
+	if browserBaseURL == "" {
+		browserBaseURL = baseURL
+	}
 	return &Client{
-		gc:            gocloak.NewClient(baseURL),
-		baseURL:       baseURL,
-		realm:         realm,
-		clientID:      clientID,
-		clientSecret:  clientSecret,
-		adminRealm:    adminRealm,
-		adminUser:     adminUser,
-		adminPassword: adminPassword,
-		httpClient:    &http.Client{Timeout: 30 * time.Second},
+		gc:             gocloak.NewClient(baseURL),
+		baseURL:        baseURL,
+		browserBaseURL: browserBaseURL,
+		realm:          realm,
+		clientID:       clientID,
+		clientSecret:   clientSecret,
+		adminRealm:     adminRealm,
+		adminUser:      adminUser,
+		adminPassword:  adminPassword,
+		httpClient:     &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -90,8 +99,46 @@ func (c *Client) ensureRealmRoles(ctx context.Context, token string) error {
 	return nil
 }
 
+// BuildPostLogoutRedirectURIs шаблоны для атрибута Keycloak post.logout.redirect.uris (разделитель ##).
+func BuildPostLogoutRedirectURIs(frontendURL string) string {
+	u, err := url.Parse(strings.TrimSpace(frontendURL))
+	if err != nil || u.Hostname() == "" {
+		return "http://localhost:3000/*"
+	}
+	scheme := u.Scheme
+	if scheme == "" {
+		scheme = "http"
+	}
+	hostWithPort := u.Hostname()
+	if u.Port() != "" {
+		hostWithPort += ":" + u.Port()
+	}
+	base := scheme + "://" + hostWithPort
+	patterns := []string{base + "/*"}
+	if u.Hostname() == "localhost" && u.Port() != "" {
+		patterns = append(patterns, fmt.Sprintf("http://127.0.0.1:%s/*", u.Port()))
+	}
+	if u.Hostname() == "127.0.0.1" && u.Port() != "" {
+		patterns = append(patterns, fmt.Sprintf("http://localhost:%s/*", u.Port()))
+	}
+	return strings.Join(patterns, "##")
+}
+
+// mergeOAuthClientAttributes сохраняет прочие атрибуты клиента и задаёт OIDC/PKCE/logout.
+func mergeOAuthClientAttributes(existing *map[string]string, postLogoutURIs string) *map[string]string {
+	m := map[string]string{}
+	if existing != nil {
+		for k, v := range *existing {
+			m[k] = v
+		}
+	}
+	m["pkce.code.challenge.method"] = "S256"
+	m["post.logout.redirect.uris"] = postLogoutURIs
+	return &m
+}
+
 // EnsureOAuthClient создаёт/обновляет confidential OIDC-клиент.
-func (c *Client) EnsureOAuthClient(ctx context.Context, token string, redirectURI string) (string, error) {
+func (c *Client) EnsureOAuthClient(ctx context.Context, token string, redirectURI string, postLogoutURIs string) (string, error) {
 	clients, err := c.gc.GetClients(ctx, token, c.realm, gocloak.GetClientsParams{ClientID: gocloak.StringP(c.clientID)})
 	if err != nil {
 		return "", fmt.Errorf("get clients: %w", err)
@@ -100,6 +147,7 @@ func (c *Client) EnsureOAuthClient(ctx context.Context, token string, redirectUR
 	direct := true
 	std := true
 	secret := c.clientSecret
+	attrs := mergeOAuthClientAttributes(nil, postLogoutURIs)
 	rep := gocloak.Client{
 		ClientID:                  gocloak.StringP(c.clientID),
 		Name:                      gocloak.StringP(c.clientID),
@@ -110,9 +158,7 @@ func (c *Client) EnsureOAuthClient(ctx context.Context, token string, redirectUR
 		RedirectURIs:              &[]string{redirectURI},
 		WebOrigins:                &[]string{"+"},
 		Secret:                    &secret,
-		Attributes: &map[string]string{
-			"pkce.code.challenge.method": "S256",
-		},
+		Attributes:                attrs,
 	}
 	if len(clients) == 0 {
 		id, err := c.gc.CreateClient(ctx, token, c.realm, rep)
@@ -132,7 +178,7 @@ func (c *Client) EnsureOAuthClient(ctx context.Context, token string, redirectUR
 	full.DirectAccessGrantsEnabled = rep.DirectAccessGrantsEnabled
 	full.PublicClient = rep.PublicClient
 	full.Secret = rep.Secret
-	full.Attributes = rep.Attributes
+	full.Attributes = mergeOAuthClientAttributes(full.Attributes, postLogoutURIs)
 	if err := c.gc.UpdateClient(ctx, token, c.realm, *full); err != nil {
 		return "", fmt.Errorf("update client: %w", err)
 	}
@@ -407,7 +453,7 @@ func (c *Client) postToken(ctx context.Context, form url.Values) (*ports.TokenPa
 
 // EndSessionURL URL для завершения SSO-сессии в браузере.
 func (c *Client) EndSessionURL(idTokenHint, postLogoutRedirect string) string {
-	u, _ := url.Parse(fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.baseURL, c.realm))
+	u, _ := url.Parse(fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", c.browserBaseURL, c.realm))
 	q := u.Query()
 	if idTokenHint != "" {
 		q.Set("id_token_hint", idTokenHint)

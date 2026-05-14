@@ -9,6 +9,11 @@ services:
       - "5435:5432"
     volumes:
       - prod_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prod -d prod"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   production-service:
     build: .
@@ -19,11 +24,12 @@ services:
       DB_DSN: postgres://prod:prod@prod-db:5432/prod?sslmode=disable
       KEYCLOAK_URL: http://host.docker.internal:8081
       WAREHOUSE_BASE_URL: http://host.docker.internal:8090
-      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-dev-secret}
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-e2e-warehouse-service-secret}
       SED_BASE_URL: http://host.docker.internal:8091
       SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_VERIFY_SECRET:-dev-secret}
     depends_on:
-      - prod-db
+      prod-db:
+        condition: service_healthy
 
 volumes:
   prod_pg:

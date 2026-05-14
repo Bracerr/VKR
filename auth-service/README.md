@@ -17,13 +17,15 @@ cp .env.example .env   # при необходимости поправьте с
 make up               # postgres + keycloak + auth-service
 ```
 
+HTTP API по умолчанию проброшен на хост**:18080** (порт **8080** на хосте зарезервирован под единый шлюз — см. [`dev-gateway/`](../dev-gateway/README.md) и `docker-compose.yaml`).
+
 Подождите ~60 с и проверьте:
 
 ```bash
-curl -s http://localhost:8080/ready
+curl -s http://localhost:18080/ready
 ```
 
-Swagger: <http://localhost:8080/swagger/index.html>
+Swagger: <http://localhost:18080/swagger/index.html>
 
 По умолчанию создаётся суперадмин (если `BOOTSTRAP_SUPERADMIN=true` в compose):
 

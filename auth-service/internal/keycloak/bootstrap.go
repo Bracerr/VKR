@@ -23,6 +23,7 @@ func BootstrapSuperAdmin(ctx context.Context, c *Client, username, password stri
 	}
 	enabled := true
 	email := username + "@bootstrap.local"
+	attrs := map[string][]string{"tenant_id": {"superadmin"}}
 	var uid string
 	if n > 0 {
 		// Пользователь уже есть — снимаем «Account is not fully set up» (requiredActions / профиль).
@@ -41,6 +42,7 @@ func BootstrapSuperAdmin(ctx context.Context, c *Client, username, password stri
 			Enabled:         &enabled,
 			Email:           gocloak.StringP(email),
 			EmailVerified:   gocloak.BoolP(true),
+			Attributes:      &attrs,
 			RequiredActions: &[]string{},
 		}
 		uid, err = c.CreateUser(ctx, token, u)
@@ -51,14 +53,18 @@ func BootstrapSuperAdmin(ctx context.Context, c *Client, username, password stri
 			_ = c.DeleteUser(ctx, token, uid)
 			return err
 		}
-		role, err := c.RealmRole(ctx, token, RoleSuperAdmin)
-		if err != nil {
-			_ = c.DeleteUser(ctx, token, uid)
-			return err
+		assign := make([]gocloak.Role, 0, len(RealmRoles))
+		for _, rn := range RealmRoles {
+			role, err := c.RealmRole(ctx, token, rn)
+			if err != nil {
+				_ = c.DeleteUser(ctx, token, uid)
+				return fmt.Errorf("bootstrap superadmin: load role %s: %w", rn, err)
+			}
+			assign = append(assign, *role)
 		}
-		if err := c.AddRealmRoleToUser(ctx, token, uid, []gocloak.Role{*role}); err != nil {
+		if err := c.AddRealmRoleToUser(ctx, token, uid, assign); err != nil {
 			_ = c.DeleteUser(ctx, token, uid)
-			return err
+			return fmt.Errorf("bootstrap superadmin: assign initial roles: %w", err)
 		}
 	}
 	full, err := c.GetUserByID(ctx, token, uid)
@@ -70,26 +76,40 @@ func BootstrapSuperAdmin(ctx context.Context, c *Client, username, password stri
 	full.Enabled = gocloak.BoolP(true)
 	full.FirstName = gocloak.StringP("Super")
 	full.LastName = gocloak.StringP("Admin")
+	if full.Attributes == nil {
+		full.Attributes = &map[string][]string{}
+	}
+	if vals, ok := (*full.Attributes)["tenant_id"]; !ok || len(vals) == 0 || vals[0] == "" {
+		(*full.Attributes)["tenant_id"] = []string{"superadmin"}
+	}
 	full.RequiredActions = &[]string{}
 	if err := c.UpdateUser(ctx, token, *full); err != nil {
 		return fmt.Errorf("update superadmin (clear required actions): %w", err)
 	}
-	hasSuper := false
-	if roles, err := c.GetRealmRolesOfUser(ctx, token, uid); err == nil {
-		for _, r := range roles {
-			if r.Name != nil && *r.Name == RoleSuperAdmin {
-				hasSuper = true
-				break
-			}
+	existing, err := c.GetRealmRolesOfUser(ctx, token, uid)
+	if err != nil {
+		return fmt.Errorf("bootstrap superadmin: get existing roles: %w", err)
+	}
+	have := make(map[string]struct{}, len(existing))
+	for _, r := range existing {
+		if r.Name != nil {
+			have[*r.Name] = struct{}{}
 		}
 	}
-	if !hasSuper {
-		role, err := c.RealmRole(ctx, token, RoleSuperAdmin)
-		if err != nil {
-			return fmt.Errorf("bootstrap superadmin: realm role: %w", err)
+	missing := make([]gocloak.Role, 0, len(RealmRoles))
+	for _, rn := range RealmRoles {
+		if _, ok := have[rn]; ok {
+			continue
 		}
-		if err := c.AddRealmRoleToUser(ctx, token, uid, []gocloak.Role{*role}); err != nil {
-			return fmt.Errorf("bootstrap superadmin: assign role: %w", err)
+		role, err := c.RealmRole(ctx, token, rn)
+		if err != nil {
+			return fmt.Errorf("bootstrap superadmin: realm role %s: %w", rn, err)
+		}
+		missing = append(missing, *role)
+	}
+	if len(missing) > 0 {
+		if err := c.AddRealmRoleToUser(ctx, token, uid, missing); err != nil {
+			return fmt.Errorf("bootstrap superadmin: assign missing roles: %w", err)
 		}
 	}
 	return nil

@@ -15,6 +15,7 @@ const (
 	CtxClaimsKey           = "claims"
 	HeaderServiceSecret    = "X-Service-Secret"
 	HeaderServiceTenantID  = "X-Tenant-Id"
+	CookieAccessToken      = "access_token"
 )
 
 // JWTAuth Bearer JWT или сервисный вызов (X-Service-Secret + X-Tenant-Id) от sed-service.
@@ -34,6 +35,9 @@ func JWTAuth(parser *jwtverify.Parser, serviceSecret string) gin.HandlerFunc {
 		}
 
 		raw := extractBearer(c.GetHeader("Authorization"))
+		if raw == "" {
+			raw, _ = c.Cookie(CookieAccessToken)
+		}
 		if raw == "" {
 			httpx.ErrorJSON(c, http.StatusUnauthorized, "требуется авторизация", http.StatusUnauthorized)
 			c.Abort()

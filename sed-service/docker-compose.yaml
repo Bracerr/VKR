@@ -40,6 +40,8 @@ services:
     environment:
       CONFIG_PATH: /app/configs/docker.yaml
       DB_DSN: postgres://sed:sed@postgres:5432/sed?sslmode=disable
+      # Keycloak с auth-service compose слушает на хосте :8081
+      KEYCLOAK_URL: http://host.docker.internal:8081
       WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-e2e-warehouse-service-secret}
       WAREHOUSE_BASE_URL: ${WAREHOUSE_BASE_URL:-http://host.docker.internal:8090}
     ports:

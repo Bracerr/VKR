@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -10,8 +9,6 @@ import (
 	"github.com/industrial-sed/auth-service/internal/middleware"
 	"github.com/industrial-sed/auth-service/internal/usecases"
 )
-
-const cookieOAuthPKCE = "oauth_pkce"
 
 // AuthHandler OIDC BFF.
 type AuthHandler struct {
@@ -57,20 +54,11 @@ func clearTokenCookie(c *gin.Context, name string, secure bool) {
 // @Router /api/v1/auth/login [get]
 func (h *AuthHandler) Login(c *gin.Context) {
 	returnTo := c.Query("return_to")
-	url, signed, err := h.auth.BuildAuthorizeURL(returnTo)
+	url, err := h.auth.BuildAuthorizeURL(returnTo)
 	if err != nil {
 		RespondError(c, http.StatusInternalServerError, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     cookieOAuthPKCE,
-		Value:    signed,
-		Path:     "/",
-		MaxAge:   600,
-		HttpOnly: true,
-		Secure:   h.secure,
-		SameSite: http.SameSiteLaxMode,
-	})
 	c.Redirect(http.StatusFound, url)
 }
 
@@ -82,12 +70,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Callback(c *gin.Context) {
 	code := c.Query("code")
 	state := c.Query("state")
-	raw, err := c.Cookie(cookieOAuthPKCE)
-	if err != nil || raw == "" {
-		RespondError(c, http.StatusBadRequest, "отсутствует oauth cookie", http.StatusBadRequest)
+	if state == "" {
+		RespondError(c, http.StatusBadRequest, "отсутствует параметр state", http.StatusBadRequest)
 		return
 	}
-	tokens, returnTo, err := h.auth.ExchangeCallback(c.Request.Context(), code, state, raw)
+	tokens, returnTo, err := h.auth.ExchangeCallback(c.Request.Context(), code, state)
 	if err != nil {
 		RespondError(c, http.StatusUnauthorized, err.Error(), http.StatusUnauthorized)
 		return
@@ -104,18 +91,12 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	if refreshMax <= 0 {
 		refreshMax = 86400 * 7
 	}
-	clearTokenCookie(c, cookieOAuthPKCE, h.secure)
 	setTokenCookie(c, middleware.CookieAccessToken, tokens.AccessToken, maxAge, h.secure)
 	setTokenCookie(c, middleware.CookieRefreshToken, tokens.RefreshToken, refreshMax, h.secure)
 	if tokens.IDToken != "" {
 		setTokenCookie(c, middleware.CookieIDToken, tokens.IDToken, refreshMax, h.secure)
 	}
-	loc := h.auth.FrontendBase()
-	if strings.HasPrefix(returnTo, "/") {
-		loc += returnTo
-	} else {
-		loc += "/" + returnTo
-	}
+	loc := h.auth.PostLoginRedirectURL(returnTo)
 	c.Redirect(http.StatusFound, loc)
 }
 
