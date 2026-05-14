@@ -7,7 +7,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: auth
-      POSTGRES_PASSWORD: auth
+      POSTGRES_PASSWORD: ${PG_AUTH_PASSWORD:-auth}
       POSTGRES_DB: auth
     ports:
       - "5432:5432"
@@ -21,8 +21,8 @@ services:
     image: quay.io/keycloak/keycloak:24.0.5
     command: ["start-dev", "--http-enabled=true", "--hostname-strict=false"]
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     ports:
       - "8081:8080"
     # Дождаться, пока HTTP действительно слушает (иначе auth-service падает на LoginAdmin).
@@ -63,12 +63,15 @@ services:
         condition: service_healthy
     restart: on-failure:5
     environment:
-      # Основные (не секретные) настройки — в YAML.
+      # Основные (не секретные) настройки — в YAML; секреты — из корня репозитория `.env` (см. VKR/.env.example).
       CONFIG_PATH: /app/configs/docker.yaml
-      # DSN и секреты — в `.env` (env_file).
-      DB_DSN: postgres://auth:auth@postgres:5432/auth?sslmode=disable
-    env_file:
-      - .env
-    # Публичный API для браузера — через dev-gateway на :8080 (см. VKR/dev-gateway).
+      DB_DSN: postgres://auth:${PG_AUTH_PASSWORD:-auth}@postgres:5432/auth?sslmode=disable
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-dev-client-secret-change-me}
+      SERVICE_SECRET: ${AUTH_SERVICE_SECRET:-e2e-service-secret}
+      TEST_SECRET: ${AUTH_TEST_SECRET:-e2e-test-secret}
+      STATE_COOKIE_SECRET: ${AUTH_STATE_COOKIE_SECRET:-0123456789abcdef0123456789abcdef}
+      BOOTSTRAP_SUPERADMIN_PASSWORD: ${AUTH_BOOTSTRAP_SUPERADMIN_PASSWORD:-superadmin}
+    # Публичный API для браузера — через dev-gateway (nginx) на :8080 (см. VKR/dev-gateway).
     ports:
       - "18080:8080"

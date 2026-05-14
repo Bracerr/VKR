@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: wh
-      POSTGRES_PASSWORD: wh
+      POSTGRES_PASSWORD: ${PG_WH_PASSWORD:-wh}
       POSTGRES_DB: warehouse
     ports:
       - "5433:5432"
@@ -23,7 +23,7 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       CONFIG_PATH: /app/configs/docker.yaml
-      DB_DSN: postgres://wh:wh@postgres:5432/warehouse?sslmode=disable
+      DB_DSN: postgres://wh:${PG_WH_PASSWORD:-wh}@postgres:5432/warehouse?sslmode=disable
       # Должен совпадать с WAREHOUSE_SERVICE_SECRET у sed-service / production / procurement.
       SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-e2e-warehouse-service-secret}
     ports:

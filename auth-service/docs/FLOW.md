@@ -91,6 +91,10 @@ Keycloak кладёт в токен роли realm (`realm_access.roles`). Claim
 | **`proc_buyer`** | **`ent_admin`** / Keycloak | Создание и ведение PR/PO, отправка на согласование, приемка по PO |
 | **`proc_approver`** | **`ent_admin`** / Keycloak | Роль согласующего для закупочных документов (через **sed-service**) |
 | **`proc_viewer`** | **`ent_admin`** / Keycloak | Только чтение в **procurement-service** |
+| **`sales_admin`** | **`ent_admin`** / Keycloak | Полный доступ к **sales-service** (клиенты, SO, резерв/отгрузка) |
+| **`sales_manager`** | **`ent_admin`** / Keycloak | Создание и ведение заказов клиента (SO), submit/release/reserve/ship |
+| **`sales_approver`** | **`ent_admin`** / Keycloak | Роль согласующего для документов продаж (через **sed-service**) |
+| **`sales_viewer`** | **`ent_admin`** / Keycloak | Только чтение в **sales-service** |
 
 Маршруты защищены так:
 

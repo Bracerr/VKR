@@ -29,6 +29,9 @@ type Config struct {
 
 	// ServiceSecret общий секрет для вызовов от sed-service (заголовок X-Service-Secret). Пусто — режим отключён.
 	ServiceSecret string `mapstructure:"service_secret"`
+
+	TraceabilityBaseURL string `mapstructure:"traceability_base_url"`
+	TraceabilitySecret  string `mapstructure:"traceability_secret"`
 }
 
 // Load читает конфиг.
@@ -71,6 +74,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("rate_limit_per_minute", 120)
 	v.SetDefault("import_max_rows", 10000)
 	v.SetDefault("service_secret", "")
+	v.SetDefault("traceability_base_url", "")
+	v.SetDefault("traceability_secret", "")
 }
 
 // Validate проверяет обязательные поля.

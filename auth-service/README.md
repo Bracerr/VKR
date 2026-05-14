@@ -17,7 +17,7 @@ cp .env.example .env   # при необходимости поправьте с
 make up               # postgres + keycloak + auth-service
 ```
 
-HTTP API по умолчанию проброшен на хост**:18080** (порт **8080** на хосте зарезервирован под единый шлюз — см. [`dev-gateway/`](../dev-gateway/README.md) и `docker-compose.yaml`).
+HTTP API по умолчанию проброшен на хост**:18080** (порт **8080** на хосте зарезервирован под единый шлюз **nginx** — см. [`dev-gateway/`](../dev-gateway/README.md) и `docker-compose.yaml`).
 
 Подождите ~60 с и проверьте:
 

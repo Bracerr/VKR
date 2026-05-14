@@ -125,7 +125,8 @@ func allowedRole(r string) bool {
 		keycloak.RoleSedAdmin, keycloak.RoleSedAuthor, keycloak.RoleSedApprover, keycloak.RoleSedViewer,
 		keycloak.RoleProdAdmin, keycloak.RoleProdTechnologist, keycloak.RoleProdPlanner, keycloak.RoleProdMaster,
 		keycloak.RoleProdWorker, keycloak.RoleProdQC, keycloak.RoleProdViewer,
-		keycloak.RoleProcAdmin, keycloak.RoleProcBuyer, keycloak.RoleProcApprover, keycloak.RoleProcViewer:
+		keycloak.RoleProcAdmin, keycloak.RoleProcBuyer, keycloak.RoleProcApprover, keycloak.RoleProcViewer,
+		keycloak.RoleSalesAdmin, keycloak.RoleSalesManager, keycloak.RoleSalesApprover, keycloak.RoleSalesViewer:
 		return true
 	default:
 		return false

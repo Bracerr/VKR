@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/industrial-sed/warehouse-service/internal/config"
+	"github.com/industrial-sed/warehouse-service/internal/clients"
 	"github.com/industrial-sed/warehouse-service/internal/jobs"
 	"github.com/industrial-sed/warehouse-service/internal/jwtverify"
 	"github.com/industrial-sed/warehouse-service/internal/logger"
@@ -68,7 +69,8 @@ func main() {
 	}
 
 	store := repositories.NewStore(pool)
-	uc := &usecases.UC{Store: store, DefaultCurrency: cfg.DefaultCurrency}
+	trace := clients.NewTraceability(cfg)
+	uc := &usecases.UC{Store: store, DefaultCurrency: cfg.DefaultCurrency, Trace: trace}
 
 	bgCtx, bgCancel := context.WithCancel(context.Background())
 	defer bgCancel()

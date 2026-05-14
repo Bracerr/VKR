@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 
+	"github.com/industrial-sed/warehouse-service/internal/clients"
 	"github.com/industrial-sed/warehouse-service/internal/models"
 	"github.com/industrial-sed/warehouse-service/internal/repositories"
 )
@@ -17,6 +18,7 @@ import (
 type UC struct {
 	Store           *repositories.Store
 	DefaultCurrency string
+	Trace           *clients.Traceability
 }
 
 // ReceiptLineIn строка прихода.
@@ -200,6 +202,7 @@ func (u *UC) Receipt(ctx context.Context, tenant, user string, whID, binID uuid.
 	if err := tx.Commit(ctx); err != nil {
 		return uuid.Nil, err
 	}
+	u.emitTraceDocumentPosted(ctx, tenant, doc.ID)
 	return doc.ID, nil
 }
 

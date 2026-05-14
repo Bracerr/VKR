@@ -1,0 +1,27 @@
+services:
+  trace-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trace
+      POSTGRES_PASSWORD: ${PG_TRACE_PASSWORD:-trace}
+      POSTGRES_DB: trace
+    ports:
+      - "5438:5432"
+    volumes:
+      - trace_pg:/var/lib/postgresql/data
+
+  traceability-service:
+    build: .
+    ports:
+      - "8095:8095"
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      DB_DSN: postgres://trace:${PG_TRACE_PASSWORD:-trace}@trace-db:5432/trace?sslmode=disable
+      KEYCLOAK_URL: http://host.docker.internal:8081
+      TRACE_INGEST_SECRET: ${TRACE_INGEST_SECRET:-dev-trace-secret}
+    depends_on:
+      - trace-db
+
+volumes:
+  trace_pg:
+

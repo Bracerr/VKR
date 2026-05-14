@@ -569,6 +569,11 @@ func (a *App) ReceivePO(ctx context.Context, tenant, actorSub string, poID uuid.
 	if err := tx2.Commit(ctx); err != nil {
 		return uuid.Nil, err
 	}
+	if a.Trace != nil {
+		bg, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = a.Trace.LinkEntityToWarehouseDoc(bg, tenant, "PO", poID.String(), po.Number, whDocID.String(), "po-link-"+poID.String())
+	}
 	return whDocID, nil
 }
 

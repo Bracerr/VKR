@@ -1,0 +1,10 @@
+http_addr: ":8095"
+log_level: info
+db_dsn: ${DB_DSN}
+keycloak_url: http://localhost:8081
+keycloak_realm: industrial-sed
+keycloak_client_id: auth-service
+run_migrations_on_start: true
+rate_limit_per_minute: 120
+trace_ingest_secret: ${TRACE_INGEST_SECRET}
+

@@ -28,6 +28,9 @@ type Config struct {
 
 	SedBaseURL               string `mapstructure:"sed_base_url"`
 	SedCallbackVerifySecret  string `mapstructure:"sed_callback_verify_secret"`
+
+	TraceabilityBaseURL string `mapstructure:"traceability_base_url"`
+	TraceabilitySecret  string `mapstructure:"traceability_secret"`
 }
 
 // Load читает конфиг.
@@ -71,6 +74,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("warehouse_service_secret", "")
 	v.SetDefault("sed_base_url", "http://localhost:8091")
 	v.SetDefault("sed_callback_verify_secret", "")
+	v.SetDefault("traceability_base_url", "")
+	v.SetDefault("traceability_secret", "")
 }
 
 // Validate проверяет обязательные поля.

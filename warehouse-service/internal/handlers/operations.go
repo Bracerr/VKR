@@ -177,6 +177,41 @@ func (h *Ops) Issue(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"document_id": docID})
 }
 
+type issueFromResReq struct {
+	ReservationIDs []string `json:"reservation_ids" binding:"required,min=1"`
+}
+
+// IssueFromReservations списывает товар по резервам (создаёт складской документ ISSUE).
+func (h *Ops) IssueFromReservations(c *gin.Context) {
+	tn, ok := tenant(c)
+	if !ok {
+		return
+	}
+	var req issueFromResReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		RespondError(c, http.StatusBadRequest, err.Error(), http.StatusBadRequest)
+		return
+	}
+	var ids []uuid.UUID
+	for _, s := range req.ReservationIDs {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			RespondError(c, http.StatusBadRequest, "reservation_ids", http.StatusBadRequest)
+			return
+		}
+		ids = append(ids, id)
+	}
+	docID, err := h.UC.IssueFromReservations(c.Request.Context(), tn, userName(c), ids)
+	if err != nil {
+		if RespondUsecaseError(c, err) {
+			return
+		}
+		RespondError(c, http.StatusBadRequest, err.Error(), http.StatusBadRequest)
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"document_id": docID})
+}
+
 type transferLineReq struct {
 	ProductID     string   `json:"product_id" binding:"required"`
 	Qty           string   `json:"qty"`

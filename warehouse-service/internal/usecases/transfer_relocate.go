@@ -150,6 +150,7 @@ func (u *UC) moveStock(ctx context.Context, tenant, user string, whFrom, binFrom
 	if err := tx.Commit(ctx); err != nil {
 		return uuid.Nil, err
 	}
+	u.emitTraceDocumentPosted(ctx, tenant, doc.ID)
 	return doc.ID, nil
 }
 

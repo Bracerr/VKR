@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: proc
-      POSTGRES_PASSWORD: proc
+      POSTGRES_PASSWORD: ${PG_PROC_PASSWORD:-proc}
       POSTGRES_DB: procurement
     ports:
       - "5436:5432"
@@ -21,12 +21,12 @@ services:
       - "8093:8093"
     environment:
       CONFIG_PATH: /app/configs/docker.yaml
-      DB_DSN: postgres://proc:proc@proc-db:5432/procurement?sslmode=disable
+      DB_DSN: postgres://proc:${PG_PROC_PASSWORD:-proc}@proc-db:5432/procurement?sslmode=disable
       KEYCLOAK_URL: http://host.docker.internal:8081
       WAREHOUSE_BASE_URL: http://host.docker.internal:8090
       WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-e2e-warehouse-service-secret}
       SED_BASE_URL: http://host.docker.internal:8091
-      SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_VERIFY_SECRET:-dev-secret}
+      SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_PROCUREMENT_SECRET:-dev-secret}
     depends_on:
       proc-db:
         condition: service_healthy

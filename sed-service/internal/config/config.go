@@ -37,6 +37,9 @@ type Config struct {
 
 	ProcurementCallbackURL    string `mapstructure:"procurement_callback_url"`
 	ProcurementCallbackSecret string `mapstructure:"procurement_callback_secret"`
+
+	SalesCallbackURL    string `mapstructure:"sales_callback_url"`
+	SalesCallbackSecret string `mapstructure:"sales_callback_secret"`
 }
 
 // Load читает конфиг.
@@ -87,6 +90,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("production_callback_secret", "")
 	v.SetDefault("procurement_callback_url", "")
 	v.SetDefault("procurement_callback_secret", "")
+	v.SetDefault("sales_callback_url", "")
+	v.SetDefault("sales_callback_secret", "")
 }
 
 // Validate проверяет обязательные поля.

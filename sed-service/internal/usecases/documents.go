@@ -406,6 +406,11 @@ func (a *App) SignDocument(ctx context.Context, tenant, authorSub string, id uui
 		defer cancel()
 		_ = a.Proc.NotifyDocumentSigned(bg, tenant, d2.ID, dt.Code)
 	}
+	if a.Sales != nil {
+		bg, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		_ = a.Sales.NotifyDocumentSigned(bg, tenant, d2.ID, dt.Code)
+	}
 	return nil
 }
 

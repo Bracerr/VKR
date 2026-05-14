@@ -1,11 +1,13 @@
-# Полный стенд для pytest (из каталога VKR: docker compose -f sed-service/e2e_tests/docker-compose.test.yml up --build -d).
+# Полный стенд для pytest.
+# Секреты подставляются из корня репозитория: `cp .env.example .env` и `make test-up`
+# (Makefile передаёт `--env-file` при наличии `.env`).
 # Порты не пересекаются с dev (28080 auth, 28090 wh, 28091 sed, 28081 KC).
 services:
   pg-auth:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: auth
-      POSTGRES_PASSWORD: auth
+      POSTGRES_PASSWORD: ${PG_AUTH_PASSWORD:-auth}
       POSTGRES_DB: auth
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U auth -d auth"]
@@ -18,7 +20,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: wh
-      POSTGRES_PASSWORD: wh
+      POSTGRES_PASSWORD: ${PG_WH_PASSWORD:-wh}
       POSTGRES_DB: warehouse
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wh -d warehouse"]
@@ -31,7 +33,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: sed
-      POSTGRES_PASSWORD: sed
+      POSTGRES_PASSWORD: ${PG_SED_PASSWORD:-sed}
       POSTGRES_DB: sed
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sed -d sed"]
@@ -44,7 +46,7 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: prod
-      POSTGRES_PASSWORD: prod
+      POSTGRES_PASSWORD: ${PG_PROD_PASSWORD:-prod}
       POSTGRES_DB: prod
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U prod -d prod"]
@@ -57,10 +59,36 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: proc
-      POSTGRES_PASSWORD: proc
+      POSTGRES_PASSWORD: ${PG_PROC_PASSWORD:-proc}
       POSTGRES_DB: procurement
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U proc -d procurement"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [e2e]
+
+  pg-sales:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sales
+      POSTGRES_PASSWORD: ${PG_SALES_PASSWORD:-sales}
+      POSTGRES_DB: sales
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sales -d sales"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks: [e2e]
+
+  pg-trace:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trace
+      POSTGRES_PASSWORD: ${PG_TRACE_PASSWORD:-trace}
+      POSTGRES_DB: trace
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trace -d trace"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -70,8 +98,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio12345
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio12345}
     ports:
       - "29000:9000"
       - "29001:9001"
@@ -81,8 +109,8 @@ services:
     image: quay.io/keycloak/keycloak:24.0.5
     command: ["start-dev", "--http-enabled=true", "--hostname-strict=false"]
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     ports:
       - "28081:8080"
     healthcheck:
@@ -107,24 +135,24 @@ services:
       CONFIG_PATH: /app/configs/docker.yaml
       HTTP_ADDR: ":8080"
       LOG_LEVEL: debug
-      DB_DSN: postgres://auth:auth@pg-auth:5432/auth?sslmode=disable
+      DB_DSN: postgres://auth:${PG_AUTH_PASSWORD:-auth}@pg-auth:5432/auth?sslmode=disable
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_PUBLIC_URL: http://localhost:28081
       KEYCLOAK_ADMIN_REALM: master
-      KEYCLOAK_ADMIN_USER: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN_USER: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KEYCLOAK_REALM: industrial-sed
       KEYCLOAK_CLIENT_ID: auth-service
-      KEYCLOAK_CLIENT_SECRET: dev-client-secret-change-me
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-dev-client-secret-change-me}
       FRONTEND_URL: http://localhost:3000
       API_PUBLIC_URL: http://localhost:28080
-      SERVICE_SECRET: e2e-service-secret
-      TEST_SECRET: e2e-test-secret
-      STATE_COOKIE_SECRET: "0123456789abcdef0123456789abcdef"
+      SERVICE_SECRET: ${AUTH_SERVICE_SECRET:-e2e-service-secret}
+      TEST_SECRET: ${AUTH_TEST_SECRET:-e2e-test-secret}
+      STATE_COOKIE_SECRET: ${AUTH_STATE_COOKIE_SECRET:-0123456789abcdef0123456789abcdef}
       ENABLE_TEST_ENDPOINTS: "true"
       BOOTSTRAP_SUPERADMIN: "true"
       BOOTSTRAP_SUPERADMIN_USERNAME: superadmin
-      BOOTSTRAP_SUPERADMIN_PASSWORD: superadmin
+      BOOTSTRAP_SUPERADMIN_PASSWORD: ${AUTH_BOOTSTRAP_SUPERADMIN_PASSWORD:-superadmin}
       NOTIFIER_TYPE: mock
       RUN_MIGRATIONS_ON_START: "true"
       OTEL_ENABLED: "false"
@@ -146,9 +174,11 @@ services:
     restart: on-failure:5
     environment:
       CONFIG_PATH: /app/configs/docker.yaml
-      DB_DSN: postgres://wh:wh@pg-wh:5432/warehouse?sslmode=disable
+      DB_DSN: postgres://wh:${PG_WH_PASSWORD:-wh}@pg-wh:5432/warehouse?sslmode=disable
       KEYCLOAK_URL: http://keycloak:8080
-      SERVICE_SECRET: sed-e2e-wh-secret
+      SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
+      TRACEABILITY_BASE_URL: http://traceability-service:8095
+      TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
     ports:
       - "28090:8090"
     networks: [e2e]
@@ -169,15 +199,17 @@ services:
       CONFIG_PATH: /app/configs/docker.yaml
       HTTP_ADDR: ":8092"
       LOG_LEVEL: debug
-      DB_DSN: postgres://prod:prod@pg-prod:5432/prod?sslmode=disable
+      DB_DSN: postgres://prod:${PG_PROD_PASSWORD:-prod}@pg-prod:5432/prod?sslmode=disable
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: industrial-sed
       KEYCLOAK_CLIENT_ID: auth-service
       RUN_MIGRATIONS_ON_START: "true"
       WAREHOUSE_BASE_URL: http://warehouse-service:8090
-      WAREHOUSE_SERVICE_SECRET: sed-e2e-wh-secret
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
       SED_BASE_URL: http://sed-service:8091
-      SED_CALLBACK_VERIFY_SECRET: e2e-prod-callback-secret
+      SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_PRODUCTION_SECRET:-e2e-prod-callback-secret}
+      TRACEABILITY_BASE_URL: http://traceability-service:8095
+      TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
     ports:
       - "28092:8092"
     networks: [e2e]
@@ -200,17 +232,76 @@ services:
       CONFIG_PATH: /app/configs/docker.yaml
       HTTP_ADDR: ":8093"
       LOG_LEVEL: debug
-      DB_DSN: postgres://proc:proc@pg-proc:5432/procurement?sslmode=disable
+      DB_DSN: postgres://proc:${PG_PROC_PASSWORD:-proc}@pg-proc:5432/procurement?sslmode=disable
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: industrial-sed
       KEYCLOAK_CLIENT_ID: auth-service
       RUN_MIGRATIONS_ON_START: "true"
       WAREHOUSE_BASE_URL: http://warehouse-service:8090
-      WAREHOUSE_SERVICE_SECRET: sed-e2e-wh-secret
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
       SED_BASE_URL: http://sed-service:8091
-      SED_CALLBACK_VERIFY_SECRET: e2e-proc-callback-secret
+      SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_PROCUREMENT_SECRET:-e2e-proc-callback-secret}
+      TRACEABILITY_BASE_URL: http://traceability-service:8095
+      TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
     ports:
       - "28093:8093"
+    networks: [e2e]
+
+  sales-service:
+    build:
+      context: ../../sales-service
+      dockerfile: Dockerfile
+    depends_on:
+      pg-sales:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      warehouse-service:
+        condition: service_started
+      sed-service:
+        condition: service_started
+    restart: on-failure:5
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      HTTP_ADDR: ":8094"
+      LOG_LEVEL: debug
+      DB_DSN: postgres://sales:${PG_SALES_PASSWORD:-sales}@pg-sales:5432/sales?sslmode=disable
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: industrial-sed
+      KEYCLOAK_CLIENT_ID: auth-service
+      RUN_MIGRATIONS_ON_START: "true"
+      WAREHOUSE_BASE_URL: http://warehouse-service:8090
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
+      SED_BASE_URL: http://sed-service:8091
+      SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_SALES_SECRET:-e2e-sales-callback-secret}
+      TRACEABILITY_BASE_URL: http://traceability-service:8095
+      TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
+    ports:
+      - "28094:8094"
+    networks: [e2e]
+
+  traceability-service:
+    build:
+      context: ../../traceability-service
+      dockerfile: Dockerfile
+    depends_on:
+      pg-trace:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    restart: on-failure:5
+    environment:
+      CONFIG_PATH: /app/configs/docker.yaml
+      HTTP_ADDR: ":8095"
+      LOG_LEVEL: debug
+      DB_DSN: postgres://trace:${PG_TRACE_PASSWORD:-trace}@pg-trace:5432/trace?sslmode=disable
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: industrial-sed
+      KEYCLOAK_CLIENT_ID: auth-service
+      RUN_MIGRATIONS_ON_START: "true"
+      TRACE_INGEST_SECRET: ${TRACE_INGEST_SECRET:-e2e-trace-secret}
+    ports:
+      - "28095:8095"
     networks: [e2e]
 
   sed-service:
@@ -233,13 +324,18 @@ services:
     restart: on-failure:5
     environment:
       CONFIG_PATH: /app/configs/docker.yaml
-      DB_DSN: postgres://sed:sed@pg-sed:5432/sed?sslmode=disable
-      WAREHOUSE_SERVICE_SECRET: sed-e2e-wh-secret
+      DB_DSN: postgres://sed:${PG_SED_PASSWORD:-sed}@pg-sed:5432/sed?sslmode=disable
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
+      WAREHOUSE_BASE_URL: http://warehouse-service:8090
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minio}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minio12345}
       KEYCLOAK_URL: http://keycloak:8080
       PRODUCTION_CALLBACK_URL: http://production-service:8092
-      PRODUCTION_CALLBACK_SECRET: e2e-prod-callback-secret
+      PRODUCTION_CALLBACK_SECRET: ${SED_CALLBACK_PRODUCTION_SECRET:-e2e-prod-callback-secret}
       PROCUREMENT_CALLBACK_URL: http://procurement-service:8093
-      PROCUREMENT_CALLBACK_SECRET: e2e-proc-callback-secret
+      PROCUREMENT_CALLBACK_SECRET: ${SED_CALLBACK_PROCUREMENT_SECRET:-e2e-proc-callback-secret}
+      SALES_CALLBACK_URL: http://sales-service:8094
+      SALES_CALLBACK_SECRET: ${SED_CALLBACK_SALES_SECRET:-e2e-sales-callback-secret}
     ports:
       - "28091:8091"
     networks: [e2e]

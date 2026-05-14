@@ -117,6 +117,7 @@ func NewRouter(d Deps) *gin.Engine {
 	{
 		op.POST("/operations/receipt", ops.Receipt)
 		op.POST("/operations/issue", ops.Issue)
+		op.POST("/operations/issue-from-reservations", ops.IssueFromReservations)
 		op.POST("/operations/transfer", ops.Transfer)
 		op.POST("/operations/relocate", ops.Relocate)
 		op.POST("/inventory", inv.Start)

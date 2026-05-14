@@ -10,6 +10,8 @@ WH_URL = os.environ.get("WAREHOUSE_BASE_URL", "http://localhost:28090")
 SED_URL = os.environ.get("SED_BASE_URL", "http://localhost:28091")
 PROD_URL = os.environ.get("PRODUCTION_BASE_URL", "http://localhost:28092")
 PROC_URL = os.environ.get("PROCUREMENT_BASE_URL", "http://localhost:28093")
+SALES_URL = os.environ.get("SALES_BASE_URL", "http://localhost:28094")
+TRACE_URL = os.environ.get("TRACE_BASE_URL", "http://localhost:28095")
 
 TEST_SECRET = os.environ.get("TEST_SECRET", "e2e-test-secret")
 WH_SERVICE_SECRET = os.environ.get("WAREHOUSE_SERVICE_SECRET", "sed-e2e-wh-secret")
@@ -37,6 +39,8 @@ def wait_stack():
     wait_url("sed", f"{SED_URL}/health")
     wait_url("production", f"{PROD_URL}/health")
     wait_url("procurement", f"{PROC_URL}/health")
+    wait_url("sales", f"{SALES_URL}/health")
+    wait_url("traceability", f"{TRACE_URL}/health")
     try:
         requests.delete(
             f"{AUTH_URL}/api/v1/internal/test/cleanup",
@@ -70,6 +74,16 @@ def prod_api():
 @pytest.fixture
 def proc_api():
     return PROC_URL
+
+
+@pytest.fixture
+def sales_api():
+    return SALES_URL
+
+
+@pytest.fixture
+def trace_api():
+    return TRACE_URL
 
 
 @pytest.fixture

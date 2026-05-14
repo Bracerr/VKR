@@ -26,6 +26,7 @@ type App struct {
 	Store *repositories.Store
 	WH    WarehouseIntegration
 	SED   SedIntegration
+	Trace *clients.Traceability
 	Cfg   *config.Config
 }
 

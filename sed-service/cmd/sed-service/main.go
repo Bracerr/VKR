@@ -87,7 +87,11 @@ func main() {
 	if cfg.ProcurementCallbackURL != "" && cfg.ProcurementCallbackSecret != "" {
 		proc = &clients.ProcurementCallback{BaseURL: cfg.ProcurementCallbackURL, Secret: cfg.ProcurementCallbackSecret}
 	}
-	app := &usecases.App{Store: store, WH: wh, Minio: minioClient, Prod: prod, Proc: proc}
+	var sales *clients.SalesCallback
+	if cfg.SalesCallbackURL != "" && cfg.SalesCallbackSecret != "" {
+		sales = &clients.SalesCallback{BaseURL: cfg.SalesCallbackURL, Secret: cfg.SalesCallbackSecret}
+	}
+	app := &usecases.App{Store: store, WH: wh, Minio: minioClient, Prod: prod, Proc: proc, Sales: sales}
 
 	r := server.NewRouter(server.Deps{
 		Log:    log,

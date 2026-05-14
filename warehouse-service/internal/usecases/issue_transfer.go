@@ -113,6 +113,7 @@ func (u *UC) Issue(ctx context.Context, tenant, user string, whID, binID uuid.UU
 	if err := tx.Commit(ctx); err != nil {
 		return uuid.Nil, err
 	}
+	u.emitTraceDocumentPosted(ctx, tenant, doc.ID)
 	return doc.ID, nil
 }
 

@@ -11,6 +11,8 @@
 | СЭД (согласование/подпись, вложения) | `sed-service` | `http://localhost:8091` | [`sed-service/docs/swagger.yaml`](../sed-service/docs/swagger.yaml) (или [`swagger.json`](../sed-service/docs/swagger.json)) |
 | Производство (MES) | `production-service` | `http://localhost:8092` | (в MVP ориентируемся на `docs/PROD.md`) |
 | Закупки | `procurement-service` | `http://localhost:8093` | (в MVP ориентируемся на `docs/PROC.md`) |
+| Продажи и отгрузки | `sales-service` | `http://localhost:8094` | (в MVP ориентируемся на `docs/SALES.md`) |
+| Прослеживаемость | `traceability-service` | `http://localhost:8095` | (в MVP ориентируемся на `docs/TRACE.md`) |
 
 Общее:
 
@@ -41,6 +43,10 @@
 ### Закупки (proc)
 
 - `proc_admin`, `proc_buyer`, `proc_viewer` — см. [`procurement-service/docs/PROC.md`](../procurement-service/docs/PROC.md) и [`auth-service/docs/FLOW.md`](../auth-service/docs/FLOW.md).
+
+### Продажи (sales)
+
+- `sales_admin`, `sales_manager`, `sales_viewer` — см. [`sales-service/docs/SALES.md`](../sales-service/docs/SALES.md) и [`auth-service/docs/FLOW.md`](../auth-service/docs/FLOW.md).
 
 ## 3) Авторизация в SPA (как логиниться)
 
@@ -135,7 +141,59 @@ Production использует операции склада (резервы/с
 
 Seed типов документов закупок для SED: [`procurement-service/scripts/example_document_types.sql`](../procurement-service/scripts/example_document_types.sql).
 
-## 8) Сквозные пользовательские сценарии (что “может система”)
+## 8) Продажи и отгрузки (sales-service): SO → Reserve → Ship
+
+Док: [`sales-service/docs/SALES.md`](../sales-service/docs/SALES.md).
+
+### Сущности и статусы
+
+- **Customer**
+- **SO**: `DRAFT` → `SUBMITTED` → `APPROVED` → `RELEASED` → `SHIPPED` (или `CANCELLED`)
+- **Shipment**: факт отгрузки (`POSTED`) + ссылка на складской документ
+
+### Согласование через СЭД (обязательный шаг)
+
+- `POST /api/v1/sales-orders/:id/submit` создаёт документ в SED и отправляет на маршрут.
+- После подписи в SED (`SIGNED`) → callback в sales (`POST /api/v1/internal/sed-events`) → SO становится `APPROVED`.
+- Далее менеджер делает `release`, затем `reserve`, затем `ship`.
+
+### Резерв и отгрузка
+
+- `reserve` создаёт резервы в `warehouse-service` и сохраняет `reservation_ids`.
+- `ship` списывает товар со склада **по reservation_ids** (через `warehouse-service` операция issue-from-reservations), сохраняет `warehouse_document_id`, SO становится `SHIPPED`.
+
+Seed типов документов продаж для SED: [`sales-service/scripts/example_document_types.sql`](../sales-service/scripts/example_document_types.sql).
+
+## 9) Прослеживаемость (traceability-service): поиск + граф цепочки
+
+Док: [`traceability-service/docs/TRACE.md`](../traceability-service/docs/TRACE.md).
+
+### Что это даёт UI
+
+- **Поиск якоря**: серийник/партия → набор найденных узлов (якорей) для выбора пользователем.
+- **Граф цепочки**: получаем `{nodes, edges}` для визуализации связей “документы/движения/бизнес-документы”.
+
+### Основные эндпоинты
+
+- `GET /api/v1/trace/search?serial_no=&batch_id=&product_id=&from=&to=`
+- `GET /api/v1/trace/graph?anchor_type=&anchor_id=&from=&to=&depth=`
+
+### Откуда берутся связи
+
+- **Warehouse → Trace**: `warehouse-service` после проведения складских операций отправляет `DocumentPosted` (с batch/serial).
+- **Domains → Trace**:
+  - `sales-service` после `ship` отправляет связь `SO → warehouse_document_id`
+  - `procurement-service` после `receive` отправляет связь `PO → warehouse_document_id`
+  - `production-service` после `complete` (приход ГП) отправляет связь `PROD_ORDER → warehouse_document_id`
+
+### E2E сценарий
+
+См. `pytest` сценарии:
+
+- [`sed-service/e2e_tests/tests/test_traceability_smoke.py`](../sed-service/e2e_tests/tests/test_traceability_smoke.py)
+- [`sed-service/e2e_tests/tests/test_traceability_flow.py`](../sed-service/e2e_tests/tests/test_traceability_flow.py)
+
+## 9) Сквозные пользовательские сценарии (что “может система”)
 
 ### (A) Онбординг тенанта и пользователей
 
@@ -161,7 +219,11 @@ Seed типов документов закупок для SED: [`procurement-se
 
 См. [`procurement-service/docs/PROC.md`](../procurement-service/docs/PROC.md).
 
-## 9) Где смотреть детали API (в репозитории)
+### (F) Продажи и отгрузка
+
+См. [`sales-service/docs/SALES.md`](../sales-service/docs/SALES.md) и e2e сценарий: [`sed-service/e2e_tests/tests/test_sales_flow.py`](../sed-service/e2e_tests/tests/test_sales_flow.py).
+
+## 10) Где смотреть детали API (в репозитории)
 
 - `auth-service` Swagger: [`auth-service/docs/swagger.yaml`](../auth-service/docs/swagger.yaml) (или [`swagger.json`](../auth-service/docs/swagger.json))
 - `warehouse-service` Swagger: [`warehouse-service/docs/swagger.yaml`](../warehouse-service/docs/swagger.yaml) (или [`swagger.json`](../warehouse-service/docs/swagger.json))
@@ -172,4 +234,6 @@ Seed типов документов закупок для SED: [`procurement-se
   - [`sed-service/docs/SED.md`](../sed-service/docs/SED.md)
   - [`production-service/docs/PROD.md`](../production-service/docs/PROD.md)
   - [`procurement-service/docs/PROC.md`](../procurement-service/docs/PROC.md)
+  - [`sales-service/docs/SALES.md`](../sales-service/docs/SALES.md)
+  - [`traceability-service/docs/TRACE.md`](../traceability-service/docs/TRACE.md)
 

@@ -33,6 +33,12 @@ const (
 	RoleProcBuyer    = "proc_buyer"
 	RoleProcApprover = "proc_approver"
 	RoleProcViewer   = "proc_viewer"
+
+	// Продажи (sales-service).
+	RoleSalesAdmin    = "sales_admin"
+	RoleSalesManager  = "sales_manager"
+	RoleSalesApprover = "sales_approver"
+	RoleSalesViewer   = "sales_viewer"
 )
 
 // RealmRoles список базовых ролей для bootstrap.
@@ -60,4 +66,8 @@ var RealmRoles = []string{
 	RoleProcBuyer,
 	RoleProcApprover,
 	RoleProcViewer,
+	RoleSalesAdmin,
+	RoleSalesManager,
+	RoleSalesApprover,
+	RoleSalesViewer,
 }

@@ -69,7 +69,8 @@ func main() {
 	store := repositories.NewStore(pool)
 	wh := clients.NewWarehouse(cfg)
 	sed := clients.NewSED(cfg)
-	appUC := &usecases.App{Store: store, WH: wh, SED: sed, Cfg: cfg}
+	trace := clients.NewTraceability(cfg)
+	appUC := &usecases.App{Store: store, WH: wh, SED: sed, Trace: trace, Cfg: cfg}
 	httpHandlers := &handlers.HTTP{App: appUC}
 
 	r := server.NewRouter(server.Deps{

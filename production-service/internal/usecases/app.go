@@ -30,5 +30,6 @@ type App struct {
 	Store *repositories.Store
 	WH    Warehouse
 	SED   SED
+	Trace *clients.Traceability
 	Cfg   *config.Config
 }

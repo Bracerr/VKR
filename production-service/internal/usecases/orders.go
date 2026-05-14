@@ -363,5 +363,13 @@ func (a *App) CompleteProductionOrder(ctx context.Context, tenant, actorSub stri
 	if err := a.Store.InsertHistory(ctx, tx3, tenant, "production_order", orderID, actorSub, "COMPLETE", histPayload(map[string]any{"warehouse_document_id": docID.String()})); err != nil {
 		return err
 	}
-	return tx3.Commit(ctx)
+	if err := tx3.Commit(ctx); err != nil {
+		return err
+	}
+	if a.Trace != nil {
+		bg, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = a.Trace.LinkEntityToWarehouseDoc(bg, tenant, "PROD_ORDER", orderID.String(), o.Code, docID.String(), "prod-link-"+orderID.String())
+	}
+	return nil
 }
