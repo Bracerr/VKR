@@ -1,6 +1,0 @@
-# На CPU без x86-64-v2:
-#   docker compose --env-file ../.env -f docker-compose.yaml -f docker-compose.legacy-cpu.yml up -d
-
-services:
-  minio:
-    image: minio/minio:RELEASE.2024-01-18T22-51-28Z-cpuv1
