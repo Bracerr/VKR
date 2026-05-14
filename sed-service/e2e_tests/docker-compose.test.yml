@@ -137,15 +137,15 @@ services:
       LOG_LEVEL: debug
       DB_DSN: postgres://auth:${PG_AUTH_PASSWORD:-auth}@pg-auth:5432/auth?sslmode=disable
       KEYCLOAK_URL: http://keycloak:8080
-      KEYCLOAK_PUBLIC_URL: http://localhost:28081
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:28081}
       KEYCLOAK_ADMIN_REALM: master
       KEYCLOAK_ADMIN_USER: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       KEYCLOAK_REALM: industrial-sed
       KEYCLOAK_CLIENT_ID: auth-service
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-dev-client-secret-change-me}
-      FRONTEND_URL: http://localhost:3000
-      API_PUBLIC_URL: http://localhost:28080
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:28080}
       SERVICE_SECRET: ${AUTH_SERVICE_SECRET:-e2e-service-secret}
       TEST_SECRET: ${AUTH_TEST_SECRET:-e2e-test-secret}
       STATE_COOKIE_SECRET: ${AUTH_STATE_COOKIE_SECRET:-0123456789abcdef0123456789abcdef}
