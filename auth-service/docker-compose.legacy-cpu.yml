@@ -1,0 +1,6 @@
+# На CPU без x86-64-v2:
+#   docker compose --env-file ../.env -f docker-compose.yaml -f docker-compose.legacy-cpu.yml up -d
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:20.0.5
