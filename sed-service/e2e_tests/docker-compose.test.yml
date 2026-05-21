@@ -95,27 +95,28 @@ services:
     networks: [e2e]
 
   kafka:
-    image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
-    command:
-      - redpanda
-      - start
-      - --smp
-      - "1"
-      - --memory
-      - 512M
-      - --overprovisioned
-      - --kafka-addr
-      - PLAINTEXT://0.0.0.0:9092
-      - --advertise-kafka-addr
-      - PLAINTEXT://kafka:9092
-      - --set
-      - redpanda.auto_create_topics_enabled=true
+    # Confluent Kafka (KRaft): совместимее со старыми CPU, чем Redpanda (exit 132 = SIGILL без AVX).
+    image: confluentinc/cp-kafka:7.6.1
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     healthcheck:
-      test: ["CMD-SHELL", "rpk cluster health 2>/dev/null || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 15s
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 18
+      start_period: 45s
     networks: [e2e]
 
   minio:
