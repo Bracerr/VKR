@@ -11,6 +11,8 @@ services:
     environment:
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:5656}
       API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:5656}
+      # Создание пользователей не должно падать из‑за Kafka (иначе rag-seed: 500).
+      NOTIFIER_TYPE: ${NOTIFIER_TYPE:-mock}
 
   gateway:
     image: nginx:1.26-alpine
@@ -55,6 +57,8 @@ services:
       WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
     command: ["python3", "/vkr/scripts/seed_rag_fixtures.py", "--force"]
     depends_on:
+      kafka:
+        condition: service_healthy
       auth-service:
         condition: service_healthy
       warehouse-service:
@@ -62,4 +66,4 @@ services:
       sed-service:
         condition: service_healthy
     networks: [e2e]
-    restart: "no"
+    restart: "on-failure:3"

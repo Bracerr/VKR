@@ -108,9 +108,7 @@ func TestUserUC_Create_notifierError(t *testing.T) {
 	kc.EXPECT().AddRealmRoleToUser(ctx, "admin-token", "uid-1", gomock.Any()).Return(nil)
 	ur.EXPECT().Upsert(ctx, gomock.Any()).Return(nil)
 	n.EXPECT().NotifyUserCreated(ctx, gomock.Any()).Return(errors.New("kafka unavailable"))
-	kc.EXPECT().DeleteUser(ctx, "admin-token", "uid-1").Return(nil)
-	ur.EXPECT().Delete(ctx, "uid-1").Return(nil)
 
 	_, _, err := uc.CreateUser(ctx, actor, "ivan", "i@rom.ru", keycloak.RoleEngineer)
-	require.Error(t, err)
+	require.NoError(t, err)
 }

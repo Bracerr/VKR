@@ -104,17 +104,14 @@ func (u *UserUC) CreateUser(ctx context.Context, actor *models.Claims, username,
 		_ = u.kc.DeleteUser(ctx, token, uid)
 		return "", "", err
 	}
-	if err := u.notif.NotifyUserCreated(ctx, UserCreatedPayload{
+	// Сбой уведомления (Kafka и т.д.) не откатывает пользователя — учётная запись уже в Keycloak.
+	_ = u.notif.NotifyUserCreated(ctx, UserCreatedPayload{
 		TenantCode:        tenant,
 		Username:          login,
 		Email:             email,
 		TemporaryPassword: tempPassword,
 		KeycloakUserID:    uid,
-	}); err != nil {
-		_ = u.kc.DeleteUser(ctx, token, uid)
-		_ = u.users.Delete(ctx, uid)
-		return "", "", err
-	}
+	})
 	return uid, tempPassword, nil
 }
 

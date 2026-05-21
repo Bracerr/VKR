@@ -22,8 +22,9 @@ def req_json_retry(*args, retries: int = 12, **kwargs):
         try:
             return req_json(*args, **kwargs)
         except ApiError as e:
-            if "429" in str(e) and attempt < retries - 1:
-                time.sleep(2.0 + attempt * 1.0)
+            msg = str(e)
+            if attempt < retries - 1 and ("429" in msg or "500" in msg or "502" in msg or "503" in msg):
+                time.sleep(2.0 + attempt * 1.5)
                 continue
             raise
 
@@ -729,7 +730,7 @@ def teardown(cfg: Cfg) -> None:
 
 
 def run_seed(cfg: Cfg) -> int:
-    time.sleep(5)  # cooldown after prior e2e / partial seeds
+    time.sleep(12)  # Keycloak/auth/Kafka после старта стека
     st = SeedState()
     super_tok = login_test(cfg.auth_base, cfg.test_secret, cfg.superadmin_user, cfg.superadmin_pass)
     ent_tok = ensure_tenant(cfg, super_tok)
