@@ -7,7 +7,8 @@ COMPOSE_ENV := --env-file $(ROOT)/.env
 endif
 
 COMPOSE_FULLSTACK ?= sed-service/e2e_tests/docker-compose.test.yml
-COMPOSE_PROD_GATEWAY ?= prod-gateway/docker-compose.yaml
+COMPOSE_DEV_PORTS ?= sed-service/e2e_tests/docker-compose.dev-ports.yml
+COMPOSE_PROD ?= sed-service/e2e_tests/docker-compose.prod.yml
 
 DOCKER_COMPOSE := docker compose
 
@@ -18,7 +19,6 @@ SERVICES := auth-service warehouse-service sed-service production-service \
 
 .PHONY: test-up test-down test-ps test-logs test-build test-config \
 	prod-up prod-down prod-ps prod-logs prod-build prod-config \
-	prod-gateway-up prod-gateway-down \
 	test-unit test-e2e test-all seed-rag seed-rag-teardown test-rag-fixtures test-e2e-rag
 
 test-unit:
@@ -38,55 +38,48 @@ test-e2e:
 test-all: test-unit test-e2e
 
 test-up:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-test up -d --build
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_DEV_PORTS) -p vkr-test up -d --build
 
 test-down:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-test down -v
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_DEV_PORTS) -p vkr-test down -v
 
 test-ps:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-test ps
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_DEV_PORTS) -p vkr-test ps
 
 test-logs:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-test logs -f --tail=200
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_DEV_PORTS) -p vkr-test logs -f --tail=200
 
 test-build:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-test build
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_DEV_PORTS) -p vkr-test build
 
 test-config:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-test config >/dev/null && echo "OK: vkr-test compose valid"
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_DEV_PORTS) -p vkr-test config >/dev/null && echo "OK: vkr-test compose valid"
 
+# Прод: один внешний порт (gateway) + автоматический RAG seed (контейнер rag-seed)
 prod-up:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-prod up -d --build
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_PROD) -p vkr-prod up -d --build
 
 prod-down:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-prod down -v
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_PROD) -p vkr-prod down -v
 
 prod-ps:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-prod ps
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_PROD) -p vkr-prod ps
 
 prod-logs:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-prod logs -f --tail=200
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_PROD) -p vkr-prod logs -f --tail=200
 
 prod-build:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-prod build
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_PROD) -p vkr-prod build
 
 prod-config:
-	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -p vkr-prod config >/dev/null && echo "OK: vkr-prod compose valid"
+	cd $(ROOT) && $(DOCKER_COMPOSE) $(COMPOSE_ENV) -f $(COMPOSE_FULLSTACK) -f $(COMPOSE_PROD) -p vkr-prod config >/dev/null && echo "OK: vkr-prod compose valid"
 
-prod-gateway-up:
-	cd $(ROOT) && $(DOCKER_COMPOSE) -f $(COMPOSE_PROD_GATEWAY) up -d
-
-prod-gateway-down:
-	cd $(ROOT) && $(DOCKER_COMPOSE) -f $(COMPOSE_PROD_GATEWAY) down
-
-# RAG fixtures (требует RAG_FIXTURES_ENABLED=true в .env)
+# RAG fixtures вручную (на проде обычно не нужно — seed идёт в make prod-up)
 seed-rag:
-	@test "$${RAG_FIXTURES_ENABLED}" = "true" || (echo "Set RAG_FIXTURES_ENABLED=true in .env"; exit 1)
-	cd $(ROOT) && python3 scripts/seed_rag_fixtures.py
+	cd $(ROOT) && RAG_FIXTURES_ENABLED=true python3 scripts/seed_rag_fixtures.py --force
 
 seed-rag-teardown:
-	@test "$${RAG_FIXTURES_ENABLED}" = "true" || (echo "Set RAG_FIXTURES_ENABLED=true in .env"; exit 1)
-	cd $(ROOT) && python3 scripts/seed_rag_fixtures.py --teardown
+	cd $(ROOT) && RAG_FIXTURES_ENABLED=true python3 scripts/seed_rag_fixtures.py --teardown
 
 test-rag-fixtures:
 	cd $(ROOT)/sed-service/e2e_tests && \

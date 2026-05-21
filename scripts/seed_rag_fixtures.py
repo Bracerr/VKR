@@ -125,7 +125,7 @@ class SeedState:
 
 
 def load_cfg(args: argparse.Namespace) -> Cfg:
-    enabled = os.getenv("RAG_FIXTURES_ENABLED", "").lower() == "true"
+    enabled = os.getenv("RAG_FIXTURES_ENABLED", "true").lower() == "true"
     if not enabled and not args.force:
         print("RAG_FIXTURES_ENABLED is not true; skip seed (use --force to override).")
         sys.exit(0)

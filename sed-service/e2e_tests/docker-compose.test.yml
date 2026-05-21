@@ -110,8 +110,6 @@ services:
       - PLAINTEXT://kafka:9092
       - --set
       - redpanda.auto_create_topics_enabled=true
-    ports:
-      - "29092:9092"
     healthcheck:
       test: ["CMD-SHELL", "rpk cluster health 2>/dev/null || exit 1"]
       interval: 5s
@@ -126,9 +124,6 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio12345}
-    ports:
-      - "29000:9000"
-      - "29001:9001"
     networks: [e2e]
 
   keycloak:
@@ -186,8 +181,12 @@ services:
       KAFKA_TOPIC_USER_EVENTS: ${KAFKA_TOPIC_USER_EVENTS:-vkr.auth.user.created}
       RUN_MIGRATIONS_ON_START: "true"
       OTEL_ENABLED: "false"
-    ports:
-      - "28080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
     networks: [e2e]
 
   warehouse-service:
@@ -214,8 +213,12 @@ services:
       EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
-    ports:
-      - "28090:8090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8090/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
     networks: [e2e]
 
   production-service:
@@ -250,8 +253,6 @@ services:
       EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
-    ports:
-      - "28092:8092"
     networks: [e2e]
 
   procurement-service:
@@ -288,8 +289,6 @@ services:
       EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
-    ports:
-      - "28093:8093"
     networks: [e2e]
 
   sales-service:
@@ -326,8 +325,6 @@ services:
       EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
-    ports:
-      - "28094:8094"
     networks: [e2e]
 
   traceability-service:
@@ -355,8 +352,6 @@ services:
       EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
-    ports:
-      - "28095:8095"
     networks: [e2e]
 
   sed-service:
@@ -396,8 +391,12 @@ services:
       EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
-    ports:
-      - "28091:8091"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8091/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 45s
     networks: [e2e]
 
 networks:

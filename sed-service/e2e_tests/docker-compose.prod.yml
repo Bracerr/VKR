@@ -1,0 +1,65 @@
+# Прод-стек: один внешний порт (gateway) + автоматический RAG seed.
+# make prod-up = docker-compose.test.yml + этот файл
+
+services:
+  keycloak:
+    environment:
+      KC_PROXY: edge
+      KC_HOSTNAME_STRICT: "false"
+
+  auth-service:
+    environment:
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:5656}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:5656}
+
+  gateway:
+    image: nginx:1.26-alpine
+    ports:
+      - "${API_GATEWAY_PORT:-5656}:5656"
+    volumes:
+      - ../../prod-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+      warehouse-service:
+        condition: service_healthy
+      sed-service:
+        condition: service_healthy
+      production-service:
+        condition: service_started
+      procurement-service:
+        condition: service_started
+      sales-service:
+        condition: service_started
+      traceability-service:
+        condition: service_started
+    networks: [e2e]
+    restart: unless-stopped
+
+  rag-seed:
+    image: python:3.12-alpine
+    working_dir: /vkr
+    volumes:
+      - ../..:/vkr
+    environment:
+      RAG_FIXTURES_ENABLED: "true"
+      RAG_FIXTURES_TENANT: ${RAG_FIXTURES_TENANT:-ragcorp}
+      RAG_FIXTURES_PASSWORD: ${RAG_FIXTURES_PASSWORD:-RagTest2026!}
+      RAG_FIXTURES_OUTPUT: /vkr/docs/rag/generated
+      AUTH_BASE_URL: http://auth-service:8080
+      SED_BASE_URL: http://sed-service:8091
+      WAREHOUSE_BASE_URL: http://warehouse-service:8090
+      AUTH_TEST_SECRET: ${AUTH_TEST_SECRET:-e2e-test-secret}
+      WAREHOUSE_SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
+    command: ["python3", "/vkr/scripts/seed_rag_fixtures.py", "--force"]
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      warehouse-service:
+        condition: service_healthy
+      sed-service:
+        condition: service_healthy
+    networks: [e2e]
+    restart: "no"

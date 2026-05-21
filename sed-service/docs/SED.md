@@ -94,4 +94,4 @@ Sales-service находит SO по `sed_document_id` и переводит з�
 
 ## RAG test fixtures
 
-Тестовый корпус для команды RAG: 50 документов, пользователи `rag_*`, manifest в `docs/rag/generated/`. См. [`docs/rag/RAG_TEAM_GUIDE.md`](../../docs/rag/RAG_TEAM_GUIDE.md). Запуск: `RAG_FIXTURES_ENABLED=true make seed-rag`, проверка: `make test-rag-fixtures`.
+Тестовый корпус для команды RAG: 50 документов, пользователи `rag_*`, manifest в `docs/rag/generated/`. См. [`docs/rag/RAG_TEAM_GUIDE.md`](../../docs/rag/RAG_TEAM_GUIDE.md). На проде создаётся автоматически при `make prod-up` (контейнер `rag-seed`); API снаружи — один порт gateway (по умолчанию **5656**).

@@ -1,3 +1,6 @@
+# Устарело: gateway входит в make prod-up (sed-service/e2e_tests/docker-compose.prod.yml).
+# Этот файл оставлен для справки; отдельно не запускайте.
+
 services:
   gateway:
     image: nginx:1.26-alpine
@@ -5,5 +8,3 @@ services:
       - "5656:5656"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"

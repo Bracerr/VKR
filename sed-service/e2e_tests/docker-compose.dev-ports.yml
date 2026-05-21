@@ -1,0 +1,44 @@
+# Публикация портов на хост — только для локальной отладки и pytest (make test-up).
+# Прод: make prod-up без этого файла — снаружи только API Gateway.
+
+services:
+  kafka:
+    ports:
+      - "29092:9092"
+
+  minio:
+    ports:
+      - "29000:9000"
+      - "29001:9001"
+
+  keycloak:
+    ports:
+      - "28081:8080"
+
+  auth-service:
+    ports:
+      - "28080:8080"
+
+  warehouse-service:
+    ports:
+      - "28090:8090"
+
+  production-service:
+    ports:
+      - "28092:8092"
+
+  procurement-service:
+    ports:
+      - "28093:8093"
+
+  sales-service:
+    ports:
+      - "28094:8094"
+
+  traceability-service:
+    ports:
+      - "28095:8095"
+
+  sed-service:
+    ports:
+      - "28091:8091"
