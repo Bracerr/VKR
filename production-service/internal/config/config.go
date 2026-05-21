@@ -31,6 +31,9 @@ type Config struct {
 
 	TraceabilityBaseURL string `mapstructure:"traceability_base_url"`
 	TraceabilitySecret  string `mapstructure:"traceability_secret"`
+
+	KafkaBrokers   []string `mapstructure:"kafka_brokers"`
+	EventTransport string   `mapstructure:"event_transport"`
 }
 
 // Load читает конфиг.
@@ -76,6 +79,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("sed_callback_verify_secret", "")
 	v.SetDefault("traceability_base_url", "")
 	v.SetDefault("traceability_secret", "")
+	v.SetDefault("kafka_brokers", []string{})
+	v.SetDefault("event_transport", "http")
 }
 
 // Validate проверяет обязательные поля.

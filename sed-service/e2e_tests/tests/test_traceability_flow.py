@@ -1,9 +1,10 @@
 """Traceability: warehouse receipt -> reservation -> issue -> trace graph."""
 
-import time
 import uuid
 
 import requests
+
+from conftest import wait_until
 
 
 def test_traceability_warehouse_flow(auth_api, wh_api, trace_api, headers_test, wh_svc_headers):
@@ -137,10 +138,12 @@ def test_traceability_warehouse_flow(auth_api, wh_api, trace_api, headers_test, 
     )
     assert r.status_code == 201, r.text
 
-    # allow async callbacks a moment
-    time.sleep(0.5)
+    def _trace_has_anchor():
+        r = requests.get(f"{trace_api}/api/v1/trace/search?serial_no={sn1}", headers=h_user, timeout=60)
+        return r.status_code == 200 and len(r.json().get("anchors") or []) > 0
 
-    # search by serial_no
+    wait_until(_trace_has_anchor, msg="trace search after warehouse issue")
+
     r = requests.get(f"{trace_api}/api/v1/trace/search?serial_no={sn1}", headers=h_user, timeout=60)
     assert r.status_code == 200, r.text
     anchors = r.json().get("anchors") or []

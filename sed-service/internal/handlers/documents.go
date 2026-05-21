@@ -36,7 +36,7 @@ func (h *HTTP) ListDocuments(c *gin.Context) {
 	if s := c.Query("author_sub"); s != "" {
 		author = &s
 	}
-	list, err := h.App.ListDocuments(c.Request.Context(), cl.TenantID, status, author)
+	list, err := h.App.ListDocuments(c.Request.Context(), cl, status, author)
 	if err != nil {
 		writeUsecaseError(c, err)
 		return
@@ -51,7 +51,7 @@ func (h *HTTP) GetDocument(c *gin.Context) {
 		return
 	}
 	cl := middleware.Claims(c)
-	d, err := h.App.GetDocument(c.Request.Context(), cl.TenantID, id)
+	d, err := h.App.GetDocument(c.Request.Context(), cl, id)
 	if err != nil {
 		writeUsecaseError(c, err)
 		return
@@ -67,7 +67,7 @@ func (h *HTTP) CreateDocument(c *gin.Context) {
 		return
 	}
 	cl := middleware.Claims(c)
-	d, err := h.App.CreateDocument(c.Request.Context(), cl.TenantID, cl.Sub, req.TypeID, req.Title, req.Payload)
+	d, err := h.App.CreateDocument(c.Request.Context(), cl, req.TypeID, req.Title, req.Payload)
 	if err != nil {
 		writeUsecaseError(c, err)
 		return
@@ -175,7 +175,7 @@ func (h *HTTP) DocumentHistory(c *gin.Context) {
 		return
 	}
 	cl := middleware.Claims(c)
-	if _, err := h.App.GetDocument(c.Request.Context(), cl.TenantID, id); err != nil {
+	if _, err := h.App.GetDocument(c.Request.Context(), cl, id); err != nil {
 		writeUsecaseError(c, err)
 		return
 	}

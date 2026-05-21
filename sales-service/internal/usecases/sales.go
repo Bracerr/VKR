@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 
+	"github.com/industrial-sed/platform/events"
 	"github.com/industrial-sed/sales-service/internal/clients"
 	"github.com/industrial-sed/sales-service/internal/models"
 )
@@ -440,10 +441,11 @@ func (a *App) ShipSO(ctx context.Context, tenant, actorSub string, soID uuid.UUI
 	if err := tx2.Commit(ctx); err != nil {
 		return uuid.Nil, err
 	}
-	if a.Trace != nil {
-		bg, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = a.Trace.LinkEntityToWarehouseDoc(bg, tenant, "SO", soID.String(), number, docID.String(), "so-link-"+soID.String())
+	if a.TracePub != nil {
+		a.TracePub.PublishLinkEntity(ctx, tenant, events.LinkEntityWarehouseDocPayload{
+			EntityType: "SO", EntityID: soID.String(), EntityNumber: number,
+			WarehouseDocumentID: docID.String(),
+		}, "so-link-"+soID.String())
 	}
 	return docID, nil
 }

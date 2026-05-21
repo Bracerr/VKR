@@ -11,6 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	pcfg "github.com/industrial-sed/platform/config"
+	"github.com/industrial-sed/platform/events"
+	platformkafka "github.com/industrial-sed/platform/kafka"
+	"github.com/industrial-sed/platform/transport"
+
 	"github.com/industrial-sed/traceability-service/internal/config"
 	"github.com/industrial-sed/traceability-service/internal/handlers"
 	"github.com/industrial-sed/traceability-service/internal/jwtverify"
@@ -61,6 +66,32 @@ func main() {
 	h := &handlers.HTTP{App: app}
 	r := server.NewRouter(server.Deps{Log: log, Parser: parser, H: h, Cfg: cfg, DB: pool})
 
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	defer bgCancel()
+	eventMode := transport.Mode(cfg.EventTransport)
+	if v := pcfg.EventTransport(); v != "" {
+		eventMode = transport.Mode(v)
+	}
+	brokers := cfg.KafkaBrokers
+	if len(brokers) == 0 {
+		brokers = pcfg.ParseBrokers("KAFKA_BROKERS", nil)
+	}
+	if transport.UseKafka(eventMode) && len(brokers) > 0 {
+		group := cfg.KafkaConsumerGroup
+		if group == "" {
+			group = "traceability-service"
+		}
+		platformkafka.StartTraceIngestConsumer(bgCtx, brokers, group, func(ctx context.Context, legacy events.TraceIngestLegacy) error {
+			return app.Ingest(ctx, &usecases.IngestEvent{
+				EventType:      legacy.EventType,
+				TenantCode:     legacy.TenantCode,
+				IdempotencyKey: legacy.IdempotencyKey,
+				Payload:        legacy.Payload,
+			})
+		}, log)
+		log.Info("kafka_trace_consumer_started")
+	}
+
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           r,
@@ -78,6 +109,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
+	bgCancel()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(config.ShutdownTimeout())*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {

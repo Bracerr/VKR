@@ -22,7 +22,10 @@ func CanApprove(c *Claims) bool {
 	return c != nil && (c.HasRole(RoleSedAdmin) || c.HasRole(RoleSedApprover))
 }
 
-// CanViewSED чтение.
+// CanViewSED доступ к read-эндпоинтам СЭД (конкретный документ фильтруется ACL).
 func CanViewSED(c *Claims) bool {
-	return c != nil && (c.HasRole(RoleSedAdmin) || c.HasRole(RoleSedAuthor) || c.HasRole(RoleSedApprover) || c.HasRole(RoleSedViewer))
+	if c == nil {
+		return false
+	}
+	return CanAdminSED(c) || CanAuthor(c) || CanApprove(c) || HasAnyDocReadRole(c)
 }

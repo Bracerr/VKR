@@ -15,6 +15,25 @@ TRACE_URL = os.environ.get("TRACE_BASE_URL", "http://localhost:28095")
 
 TEST_SECRET = os.environ.get("TEST_SECRET", "e2e-test-secret")
 WH_SERVICE_SECRET = os.environ.get("WAREHOUSE_SERVICE_SECRET", "sed-e2e-wh-secret")
+EVENT_TRANSPORT = os.environ.get("EVENT_TRANSPORT", "kafka").lower()
+
+
+def wait_until(predicate, timeout: float = 30, interval: float = 0.5, msg: str = "condition"):
+    """Ожидание async-доставки Kafka (при http — почти мгновенно)."""
+    if EVENT_TRANSPORT == "http":
+        if predicate():
+            return
+        pytest.fail(f"{msg}: failed in sync mode")
+    deadline = time.time() + timeout
+    last_err = None
+    while time.time() < deadline:
+        try:
+            if predicate():
+                return
+        except Exception as e:
+            last_err = e
+        time.sleep(interval)
+    pytest.fail(f"{msg} not satisfied within {timeout}s: {last_err}")
 
 
 def wait_url(name: str, url: str, timeout: float = 240) -> None:

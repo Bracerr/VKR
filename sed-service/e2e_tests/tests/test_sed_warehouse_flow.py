@@ -62,7 +62,7 @@ def test_reserve_on_sign(auth_api, sed_api, wh_api, headers_test, wh_svc_headers
         "sed_admin",
         "sed_author",
         "sed_approver",
-        "sed_viewer",
+        "doc_read_warehouse",
         "warehouse_admin",
     ]
     r = requests.put(

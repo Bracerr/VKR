@@ -4,6 +4,8 @@ import uuid
 
 import requests
 
+from conftest import wait_until
+
 
 def test_procurement_pr_po_receive(auth_api, sed_api, wh_api, proc_api, headers_test, wh_svc_headers):
     # --- auth: superadmin ---
@@ -53,7 +55,16 @@ def test_procurement_pr_po_receive(auth_api, sed_api, wh_api, proc_api, headers_
     uid = r.json()["id"]
     temp_pw = r.json()["temporary_password"]
 
-    roles = ["proc_buyer", "proc_viewer", "sed_admin", "sed_author", "sed_approver", "sed_viewer", "warehouse_admin"]
+    roles = [
+        "proc_buyer",
+        "proc_viewer",
+        "sed_admin",
+        "sed_author",
+        "sed_approver",
+        "doc_read_procurement",
+        "doc_write_procurement",
+        "warehouse_admin",
+    ]
     r = requests.put(
         f"{auth_api}/api/v1/users/{uid}/roles",
         headers=h_ent,
@@ -168,9 +179,11 @@ def test_procurement_pr_po_receive(auth_api, sed_api, wh_api, proc_api, headers_
     r = requests.post(f"{sed_api}/api/v1/documents/{sed_doc_id}/sign", headers=h_user, timeout=60)
     assert r.status_code == 204, r.text
 
-    r = requests.get(f"{proc_api}/api/v1/purchase-requests/{pr_id}", headers=h_user, timeout=60)
-    assert r.status_code == 200, r.text
-    assert r.json()["pr"]["status"] == "APPROVED"
+    def _pr_approved():
+        r = requests.get(f"{proc_api}/api/v1/purchase-requests/{pr_id}", headers=h_user, timeout=60)
+        return r.status_code == 200 and r.json().get("pr", {}).get("status") == "APPROVED"
+
+    wait_until(_pr_approved, msg="PR APPROVED after SED sign")
 
     # --- procurement: PO from PR + submit ---
     r = requests.post(
@@ -199,7 +212,11 @@ def test_procurement_pr_po_receive(auth_api, sed_api, wh_api, proc_api, headers_
     r = requests.post(f"{sed_api}/api/v1/documents/{sed_po_doc_id}/sign", headers=h_user, timeout=60)
     assert r.status_code == 204, r.text
 
-    # release PO after callback approval
+    def _po_approved():
+        r = requests.get(f"{proc_api}/api/v1/purchase-orders/{po_id}", headers=h_user, timeout=60)
+        return r.status_code == 200 and r.json().get("po", {}).get("status") == "APPROVED"
+
+    wait_until(_po_approved, msg="PO APPROVED after SED sign")
     r = requests.post(f"{proc_api}/api/v1/purchase-orders/{po_id}/release", headers=h_user, timeout=60)
     assert r.status_code == 204, r.text
 

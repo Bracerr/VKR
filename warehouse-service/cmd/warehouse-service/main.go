@@ -20,9 +20,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/industrial-sed/warehouse-service/internal/config"
+	pcfg "github.com/industrial-sed/platform/config"
+	"github.com/industrial-sed/platform/outbox"
+	"github.com/industrial-sed/platform/runtime"
+	"github.com/industrial-sed/platform/transport"
+
 	"github.com/industrial-sed/warehouse-service/internal/clients"
+	"github.com/industrial-sed/warehouse-service/internal/config"
 	"github.com/industrial-sed/warehouse-service/internal/jobs"
+	platformpublish "github.com/industrial-sed/platform/publish"
 	"github.com/industrial-sed/warehouse-service/internal/jwtverify"
 	"github.com/industrial-sed/warehouse-service/internal/logger"
 	appmigrate "github.com/industrial-sed/warehouse-service/internal/migrate"
@@ -70,12 +76,27 @@ func main() {
 
 	store := repositories.NewStore(pool)
 	trace := clients.NewTraceability(cfg)
-	uc := &usecases.UC{Store: store, DefaultCurrency: cfg.DefaultCurrency, Trace: trace}
+	eventMode := transport.Mode(cfg.EventTransport)
+	if v := pcfg.EventTransport(); v != "" {
+		eventMode = transport.Mode(v)
+	}
+	brokers := cfg.KafkaBrokers
+	if len(brokers) == 0 {
+		brokers = pcfg.ParseBrokers("KAFKA_BROKERS", nil)
+	}
+	tracePub := &platformpublish.TracePublisher{
+		Mode:   eventMode,
+		HTTP:   trace,
+		Outbox: outbox.NewStore(pool),
+	}
+	uc := &usecases.UC{Store: store, DefaultCurrency: cfg.DefaultCurrency, TracePub: tracePub}
 
 	bgCtx, bgCancel := context.WithCancel(context.Background())
 	defer bgCancel()
 	go jobs.RunReservationExpirer(bgCtx, log, uc, 2*time.Minute)
 	go jobs.RunExpiryAlerts(bgCtx, log, store, 6*time.Hour, 30)
+
+	runtime.StartOutboxRelay(bgCtx, pool, brokers, string(eventMode), log)
 
 	r := server.NewRouter(server.Deps{
 		Log:    log,

@@ -24,6 +24,10 @@ type Config struct {
 	RateLimitPerMinute   int  `mapstructure:"rate_limit_per_minute"`
 
 	TraceIngestSecret string `mapstructure:"trace_ingest_secret"`
+
+	KafkaBrokers          []string `mapstructure:"kafka_brokers"`
+	KafkaConsumerGroup    string   `mapstructure:"kafka_consumer_group"`
+	EventTransport        string   `mapstructure:"event_transport"`
 }
 
 // Load читает конфиг.
@@ -64,6 +68,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("run_migrations_on_start", true)
 	v.SetDefault("rate_limit_per_minute", 120)
 	v.SetDefault("trace_ingest_secret", "")
+	v.SetDefault("kafka_brokers", []string{})
+	v.SetDefault("kafka_consumer_group", "traceability-service")
+	v.SetDefault("event_transport", "http")
 }
 
 // Validate проверяет обязательные поля.

@@ -19,6 +19,16 @@ const (
 	RoleSedApprover = "sed_approver"
 	RoleSedViewer   = "sed_viewer"
 
+	// СЭД: ACL по типам документов.
+	RoleDocReadProcurement  = "doc_read_procurement"
+	RoleDocReadSales        = "doc_read_sales"
+	RoleDocReadProduction   = "doc_read_production"
+	RoleDocReadWarehouse    = "doc_read_warehouse"
+	RoleDocReadFinance      = "doc_read_finance"
+	RoleDocWriteProcurement = "doc_write_procurement"
+	RoleDocWriteSales       = "doc_write_sales"
+	RoleDocWriteProduction  = "doc_write_production"
+
 	// Производство (production-service).
 	RoleProdAdmin        = "prod_admin"
 	RoleProdTechnologist = "prod_technologist"
@@ -55,6 +65,14 @@ var RealmRoles = []string{
 	RoleSedAuthor,
 	RoleSedApprover,
 	RoleSedViewer,
+	RoleDocReadProcurement,
+	RoleDocReadSales,
+	RoleDocReadProduction,
+	RoleDocReadWarehouse,
+	RoleDocReadFinance,
+	RoleDocWriteProcurement,
+	RoleDocWriteSales,
+	RoleDocWriteProduction,
 	RoleProdAdmin,
 	RoleProdTechnologist,
 	RoleProdPlanner,

@@ -10,17 +10,14 @@ import (
 )
 
 func (u *UC) emitTraceDocumentPosted(ctx context.Context, tenant string, docID uuid.UUID) {
-	if u.Trace == nil {
+	if u.TracePub == nil {
 		return
 	}
-	bg, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	d, err := u.Store.GetDocument(bg, nil, tenant, docID)
+	d, err := u.Store.GetDocument(ctx, nil, tenant, docID)
 	if err != nil || d == nil {
 		return
 	}
-	movs, err := u.Store.ListMovementsByDocument(bg, nil, tenant, docID)
+	movs, err := u.Store.ListMovementsByDocument(ctx, nil, tenant, docID)
 	if err != nil {
 		return
 	}
@@ -48,11 +45,10 @@ func (u *UC) emitTraceDocumentPosted(ctx context.Context, tenant string, docID u
 
 	for _, mv := range movs {
 		ol := outLine{ProductID: mv.ProductID.String(), Qty: mv.Qty}
-		// nil batch is UUID zero in warehouse; не отправляем как batch
 		if mv.BatchID != models.NilBatchID {
 			bid := mv.BatchID.String()
 			ol.BatchID = &bid
-			b, _ := u.Store.GetBatchByID(bg, nil, tenant, mv.BatchID)
+			b, _ := u.Store.GetBatchByID(ctx, nil, tenant, mv.BatchID)
 			if b != nil && b.Series != "" {
 				ser := b.Series
 				ol.BatchSeries = &ser
@@ -61,7 +57,7 @@ func (u *UC) emitTraceDocumentPosted(ctx context.Context, tenant string, docID u
 		if mv.SerialID != nil {
 			sid := mv.SerialID.String()
 			ol.SerialID = &sid
-			sn, _ := u.Store.GetSerialByID(bg, nil, tenant, *mv.SerialID)
+			sn, _ := u.Store.GetSerialByID(ctx, nil, tenant, *mv.SerialID)
 			if sn != nil && sn.SerialNo != "" {
 				s := sn.SerialNo
 				ol.SerialNo = &s
@@ -70,6 +66,5 @@ func (u *UC) emitTraceDocumentPosted(ctx context.Context, tenant string, docID u
 		payload.Lines = append(payload.Lines, ol)
 	}
 
-	_ = u.Trace.DocumentPostedEvent(bg, tenant, payload, "wh-doc-"+docID.String())
+	u.TracePub.PublishDocumentPosted(ctx, tenant, payload, "wh-doc-"+docID.String())
 }
-

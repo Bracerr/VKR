@@ -20,6 +20,13 @@ import (
 	"syscall"
 	"time"
 
+	pcfg "github.com/industrial-sed/platform/config"
+	platformkafka "github.com/industrial-sed/platform/kafka"
+	"github.com/industrial-sed/platform/outbox"
+	"github.com/industrial-sed/platform/publish"
+	"github.com/industrial-sed/platform/runtime"
+	"github.com/industrial-sed/platform/transport"
+
 	"github.com/industrial-sed/production-service/internal/clients"
 	"github.com/industrial-sed/production-service/internal/config"
 	"github.com/industrial-sed/production-service/internal/handlers"
@@ -70,8 +77,24 @@ func main() {
 	wh := clients.NewWarehouse(cfg)
 	sed := clients.NewSED(cfg)
 	trace := clients.NewTraceability(cfg)
-	appUC := &usecases.App{Store: store, WH: wh, SED: sed, Trace: trace, Cfg: cfg}
+	eventMode := transport.Mode(cfg.EventTransport)
+	if v := pcfg.EventTransport(); v != "" {
+		eventMode = transport.Mode(v)
+	}
+	brokers := cfg.KafkaBrokers
+	if len(brokers) == 0 {
+		brokers = pcfg.ParseBrokers("KAFKA_BROKERS", nil)
+	}
+	tracePub := &publish.TracePublisher{Mode: eventMode, HTTP: trace, Outbox: outbox.NewStore(pool)}
+	appUC := &usecases.App{Store: store, WH: wh, SED: sed, Trace: trace, TracePub: tracePub, Cfg: cfg}
 	httpHandlers := &handlers.HTTP{App: appUC}
+
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	defer bgCancel()
+	runtime.StartOutboxRelay(bgCtx, pool, brokers, string(eventMode), log)
+	if transport.UseKafka(eventMode) && len(brokers) > 0 {
+		platformkafka.StartSedSignedConsumer(bgCtx, brokers, "production-service", appUC.HandleSedDocumentSigned, log)
+	}
 
 	r := server.NewRouter(server.Deps{
 		Log:    log,
@@ -98,6 +121,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
+	bgCancel()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(config.ShutdownTimeout())*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {

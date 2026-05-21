@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 
+	"github.com/industrial-sed/platform/events"
 	"github.com/industrial-sed/production-service/internal/clients"
 	"github.com/industrial-sed/production-service/internal/models"
 )
@@ -366,10 +367,11 @@ func (a *App) CompleteProductionOrder(ctx context.Context, tenant, actorSub stri
 	if err := tx3.Commit(ctx); err != nil {
 		return err
 	}
-	if a.Trace != nil {
-		bg, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = a.Trace.LinkEntityToWarehouseDoc(bg, tenant, "PROD_ORDER", orderID.String(), o.Code, docID.String(), "prod-link-"+orderID.String())
+	if a.TracePub != nil {
+		a.TracePub.PublishLinkEntity(ctx, tenant, events.LinkEntityWarehouseDocPayload{
+			EntityType: "PROD_ORDER", EntityID: orderID.String(), EntityNumber: o.Code,
+			WarehouseDocumentID: docID.String(),
+		}, "prod-link-"+orderID.String())
 	}
 	return nil
 }

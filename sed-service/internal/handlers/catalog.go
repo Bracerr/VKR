@@ -14,12 +14,16 @@ type createDocTypeReq struct {
 	Name               string     `json:"name" binding:"required"`
 	WarehouseAction    string     `json:"warehouse_action"`
 	DefaultWorkflowID  *uuid.UUID `json:"default_workflow_id"`
+	ReaderRoles        []string   `json:"reader_roles"`
+	WriterRoles        []string   `json:"writer_roles"`
 }
 
 type updateDocTypeReq struct {
 	Name               string     `json:"name" binding:"required"`
 	WarehouseAction    string     `json:"warehouse_action" binding:"required"`
 	DefaultWorkflowID  *uuid.UUID `json:"default_workflow_id"`
+	ReaderRoles        []string   `json:"reader_roles"`
+	WriterRoles        []string   `json:"writer_roles"`
 }
 
 type createWorkflowReq struct {
@@ -58,7 +62,7 @@ func (h *HTTP) CreateDocumentType(c *gin.Context) {
 		return
 	}
 	cl := middleware.Claims(c)
-	dt, err := h.App.CreateDocumentType(c.Request.Context(), cl.TenantID, req.Code, req.Name, req.WarehouseAction, req.DefaultWorkflowID)
+	dt, err := h.App.CreateDocumentType(c.Request.Context(), cl.TenantID, req.Code, req.Name, req.WarehouseAction, req.DefaultWorkflowID, req.ReaderRoles, req.WriterRoles)
 	if err != nil {
 		writeUsecaseError(c, err)
 		return
@@ -93,7 +97,7 @@ func (h *HTTP) UpdateDocumentType(c *gin.Context) {
 		return
 	}
 	cl := middleware.Claims(c)
-	if err := h.App.UpdateDocumentType(c.Request.Context(), cl.TenantID, id, req.Name, req.WarehouseAction, req.DefaultWorkflowID); err != nil {
+	if err := h.App.UpdateDocumentType(c.Request.Context(), cl.TenantID, id, req.Name, req.WarehouseAction, req.DefaultWorkflowID, req.ReaderRoles, req.WriterRoles); err != nil {
 		writeUsecaseError(c, err)
 		return
 	}

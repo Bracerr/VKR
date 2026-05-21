@@ -15,6 +15,8 @@ type DocumentType struct {
 	Name               string     `json:"name"`
 	WarehouseAction    string     `json:"warehouse_action"`
 	DefaultWorkflowID  *uuid.UUID `json:"default_workflow_id,omitempty"`
+	ReaderRoles        []string   `json:"reader_roles"`
+	WriterRoles        []string   `json:"writer_roles"`
 	CreatedAt          time.Time  `json:"created_at"`
 }
 

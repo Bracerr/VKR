@@ -94,6 +94,32 @@ services:
       retries: 20
     networks: [e2e]
 
+  kafka:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+    command:
+      - redpanda
+      - start
+      - --smp
+      - "1"
+      - --memory
+      - 512M
+      - --overprovisioned
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://kafka:9092
+      - --set
+      - redpanda.auto_create_topics_enabled=true
+    ports:
+      - "29092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health 2>/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [e2e]
+
   minio:
     image: minio/minio:RELEASE.2024-01-18T22-51-28Z-cpuv1
     command: server /data --console-address ":9001"
@@ -123,12 +149,14 @@ services:
 
   auth-service:
     build:
-      context: ../../auth-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: auth-service/Dockerfile
     depends_on:
       pg-auth:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: on-failure:5
     environment:
@@ -153,7 +181,9 @@ services:
       BOOTSTRAP_SUPERADMIN: "true"
       BOOTSTRAP_SUPERADMIN_USERNAME: superadmin
       BOOTSTRAP_SUPERADMIN_PASSWORD: ${AUTH_BOOTSTRAP_SUPERADMIN_PASSWORD:-superadmin}
-      NOTIFIER_TYPE: mock
+      NOTIFIER_TYPE: ${NOTIFIER_TYPE:-kafka}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      KAFKA_TOPIC_USER_EVENTS: ${KAFKA_TOPIC_USER_EVENTS:-vkr.auth.user.created}
       RUN_MIGRATIONS_ON_START: "true"
       OTEL_ENABLED: "false"
     ports:
@@ -162,14 +192,16 @@ services:
 
   warehouse-service:
     build:
-      context: ../../warehouse-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: warehouse-service/Dockerfile
     depends_on:
       pg-wh:
         condition: service_healthy
       keycloak:
         condition: service_healthy
       auth-service:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: on-failure:5
     environment:
@@ -179,15 +211,20 @@ services:
       SERVICE_SECRET: ${WAREHOUSE_SERVICE_SECRET:-sed-e2e-wh-secret}
       TRACEABILITY_BASE_URL: http://traceability-service:8095
       TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
+      EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
     ports:
       - "28090:8090"
     networks: [e2e]
 
   production-service:
     build:
-      context: ../../production-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: production-service/Dockerfile
     depends_on:
+      kafka:
+        condition: service_healthy
       pg-prod:
         condition: service_healthy
       keycloak:
@@ -210,15 +247,20 @@ services:
       SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_PRODUCTION_SECRET:-e2e-prod-callback-secret}
       TRACEABILITY_BASE_URL: http://traceability-service:8095
       TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
+      EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
     ports:
       - "28092:8092"
     networks: [e2e]
 
   procurement-service:
     build:
-      context: ../../procurement-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: procurement-service/Dockerfile
     depends_on:
+      kafka:
+        condition: service_healthy
       pg-proc:
         condition: service_healthy
       keycloak:
@@ -243,15 +285,20 @@ services:
       SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_PROCUREMENT_SECRET:-e2e-proc-callback-secret}
       TRACEABILITY_BASE_URL: http://traceability-service:8095
       TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
+      EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
     ports:
       - "28093:8093"
     networks: [e2e]
 
   sales-service:
     build:
-      context: ../../sales-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: sales-service/Dockerfile
     depends_on:
+      kafka:
+        condition: service_healthy
       pg-sales:
         condition: service_healthy
       keycloak:
@@ -276,18 +323,23 @@ services:
       SED_CALLBACK_VERIFY_SECRET: ${SED_CALLBACK_SALES_SECRET:-e2e-sales-callback-secret}
       TRACEABILITY_BASE_URL: http://traceability-service:8095
       TRACEABILITY_SECRET: ${TRACEABILITY_SECRET:-e2e-trace-secret}
+      EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
     ports:
       - "28094:8094"
     networks: [e2e]
 
   traceability-service:
     build:
-      context: ../../traceability-service
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: traceability-service/Dockerfile
     depends_on:
       pg-trace:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     restart: on-failure:5
     environment:
@@ -300,15 +352,20 @@ services:
       KEYCLOAK_CLIENT_ID: auth-service
       RUN_MIGRATIONS_ON_START: "true"
       TRACE_INGEST_SECRET: ${TRACE_INGEST_SECRET:-e2e-trace-secret}
+      EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
     ports:
       - "28095:8095"
     networks: [e2e]
 
   sed-service:
     build:
-      context: ..
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: sed-service/Dockerfile
     depends_on:
+      kafka:
+        condition: service_healthy
       pg-sed:
         condition: service_healthy
       minio:
@@ -336,6 +393,9 @@ services:
       PROCUREMENT_CALLBACK_SECRET: ${SED_CALLBACK_PROCUREMENT_SECRET:-e2e-proc-callback-secret}
       SALES_CALLBACK_URL: http://sales-service:8094
       SALES_CALLBACK_SECRET: ${SED_CALLBACK_SALES_SECRET:-e2e-sales-callback-secret}
+      EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
+      KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
+      KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}
     ports:
       - "28091:8091"
     networks: [e2e]

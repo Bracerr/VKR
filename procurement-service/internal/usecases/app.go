@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/industrial-sed/platform/publish"
 	"github.com/industrial-sed/procurement-service/internal/clients"
 	"github.com/industrial-sed/procurement-service/internal/config"
 	"github.com/industrial-sed/procurement-service/internal/repositories"
@@ -26,7 +27,8 @@ type App struct {
 	Store *repositories.Store
 	WH    WarehouseIntegration
 	SED   SedIntegration
-	Trace *clients.Traceability
-	Cfg   *config.Config
+	Trace    *clients.Traceability
+	TracePub *publish.TracePublisher
+	Cfg      *config.Config
 }
 

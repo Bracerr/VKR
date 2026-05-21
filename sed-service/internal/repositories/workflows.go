@@ -135,9 +135,9 @@ func (s *Store) DeleteWorkflowStepForTenant(ctx context.Context, tx pgx.Tx, tena
 // CreateDocumentType создаёт тип.
 func (s *Store) CreateDocumentType(ctx context.Context, tx pgx.Tx, dt *models.DocumentType) error {
 	_, err := s.db(tx).Exec(ctx, `
-		INSERT INTO document_types (id, tenant_code, code, name, warehouse_action, default_workflow_id)
-		VALUES ($1,$2,$3,$4,$5,$6)
-	`, dt.ID, dt.TenantCode, dt.Code, dt.Name, dt.WarehouseAction, dt.DefaultWorkflowID)
+		INSERT INTO document_types (id, tenant_code, code, name, warehouse_action, default_workflow_id, reader_roles, writer_roles)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	`, dt.ID, dt.TenantCode, dt.Code, dt.Name, dt.WarehouseAction, dt.DefaultWorkflowID, dt.ReaderRoles, dt.WriterRoles)
 	return err
 }
 
@@ -145,9 +145,9 @@ func (s *Store) CreateDocumentType(ctx context.Context, tx pgx.Tx, dt *models.Do
 func (s *Store) GetDocumentType(ctx context.Context, tx pgx.Tx, tenant string, id uuid.UUID) (*models.DocumentType, error) {
 	var dt models.DocumentType
 	err := s.db(tx).QueryRow(ctx, `
-		SELECT id, tenant_code, code, name, warehouse_action, default_workflow_id, created_at
+		SELECT id, tenant_code, code, name, warehouse_action, default_workflow_id, reader_roles, writer_roles, created_at
 		FROM document_types WHERE id = $1 AND tenant_code = $2
-	`, id, tenant).Scan(&dt.ID, &dt.TenantCode, &dt.Code, &dt.Name, &dt.WarehouseAction, &dt.DefaultWorkflowID, &dt.CreatedAt)
+	`, id, tenant).Scan(&dt.ID, &dt.TenantCode, &dt.Code, &dt.Name, &dt.WarehouseAction, &dt.DefaultWorkflowID, &dt.ReaderRoles, &dt.WriterRoles, &dt.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -157,7 +157,7 @@ func (s *Store) GetDocumentType(ctx context.Context, tx pgx.Tx, tenant string, i
 // ListDocumentTypes список.
 func (s *Store) ListDocumentTypes(ctx context.Context, tx pgx.Tx, tenant string) ([]models.DocumentType, error) {
 	rows, err := s.db(tx).Query(ctx, `
-		SELECT id, tenant_code, code, name, warehouse_action, default_workflow_id, created_at
+		SELECT id, tenant_code, code, name, warehouse_action, default_workflow_id, reader_roles, writer_roles, created_at
 		FROM document_types WHERE tenant_code = $1 ORDER BY code
 	`, tenant)
 	if err != nil {
@@ -167,7 +167,7 @@ func (s *Store) ListDocumentTypes(ctx context.Context, tx pgx.Tx, tenant string)
 	var out []models.DocumentType
 	for rows.Next() {
 		var dt models.DocumentType
-		if err := rows.Scan(&dt.ID, &dt.TenantCode, &dt.Code, &dt.Name, &dt.WarehouseAction, &dt.DefaultWorkflowID, &dt.CreatedAt); err != nil {
+		if err := rows.Scan(&dt.ID, &dt.TenantCode, &dt.Code, &dt.Name, &dt.WarehouseAction, &dt.DefaultWorkflowID, &dt.ReaderRoles, &dt.WriterRoles, &dt.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, dt)
@@ -178,9 +178,10 @@ func (s *Store) ListDocumentTypes(ctx context.Context, tx pgx.Tx, tenant string)
 // UpdateDocumentType обновление.
 func (s *Store) UpdateDocumentType(ctx context.Context, tx pgx.Tx, dt *models.DocumentType) error {
 	tag, err := s.db(tx).Exec(ctx, `
-		UPDATE document_types SET name = $3, warehouse_action = $4, default_workflow_id = $5
+		UPDATE document_types SET name = $3, warehouse_action = $4, default_workflow_id = $5,
+			reader_roles = $6, writer_roles = $7
 		WHERE id = $1 AND tenant_code = $2
-	`, dt.ID, dt.TenantCode, dt.Name, dt.WarehouseAction, dt.DefaultWorkflowID)
+	`, dt.ID, dt.TenantCode, dt.Name, dt.WarehouseAction, dt.DefaultWorkflowID, dt.ReaderRoles, dt.WriterRoles)
 	if err != nil {
 		return err
 	}

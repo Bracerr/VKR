@@ -31,9 +31,9 @@ type Notifier interface {
 
 // UserCreatedPayload — событие создания пользователя.
 type UserCreatedPayload struct {
-	TenantCode        string
-	Username          string
-	Email             string
-	TemporaryPassword string
-	KeycloakUserID    string
+	TenantCode        string `json:"tenant_code"`
+	Username          string `json:"username"`
+	Email             string `json:"email"`
+	TemporaryPassword string `json:"temporary_password,omitempty"`
+	KeycloakUserID    string `json:"keycloak_user_id"`
 }

@@ -36,7 +36,8 @@
 
 ### Документы
 
-- `GET /documents`, `GET /documents/:id` — `sed_viewer` и выше
+- `GET /documents`, `GET /documents/:id` — `sed_admin`, `sed_author`, `sed_approver` или `doc_read_*` (фильтр по `reader_roles` типа; автор всегда видит свои)
+- Типы документов: поля `reader_roles`, `writer_roles` (массив realm-ролей); дефолты по префиксу `code` — см. `models.DefaultACLForDocumentType`
 - `POST /documents`, `PATCH /documents/:id`, `POST .../submit|sign|cancel`, вложения — `sed_author` (и `sed_admin`)
 - `POST .../approve`, `.../reject`, `GET /tasks` — `sed_approver` (и `sed_admin`)
 - `GET /documents/:id/history`
@@ -90,3 +91,7 @@ Procurement находит PR/PO по `sed_document_id` и переводит з
 - Тело: `{ "event": "DOCUMENT_SIGNED", "tenant_code": "<tenant>", "document_id": "<uuid>", "document_type_code": "<code>" }`.
 
 Sales-service находит SO по `sed_document_id` и переводит запись в статус **`APPROVED`**.
+
+## RAG test fixtures
+
+Тестовый корпус для команды RAG: 50 документов, пользователи `rag_*`, manifest в `docs/rag/generated/`. См. [`docs/rag/RAG_TEAM_GUIDE.md`](../../docs/rag/RAG_TEAM_GUIDE.md). Запуск: `RAG_FIXTURES_ENABLED=true make seed-rag`, проверка: `make test-rag-fixtures`.

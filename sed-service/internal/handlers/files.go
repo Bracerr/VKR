@@ -16,7 +16,7 @@ func (h *HTTP) ListDocumentFiles(c *gin.Context) {
 		return
 	}
 	cl := middleware.Claims(c)
-	list, err := h.App.ListDocumentFiles(c.Request.Context(), cl.TenantID, docID)
+	list, err := h.App.ListDocumentFiles(c.Request.Context(), cl, docID)
 	if err != nil {
 		writeUsecaseError(c, err)
 		return
@@ -66,7 +66,7 @@ func (h *HTTP) DownloadDocumentFile(c *gin.Context) {
 		return
 	}
 	cl := middleware.Claims(c)
-	meta, err := h.App.GetFileMeta(c.Request.Context(), cl.TenantID, docID, fileID)
+	meta, err := h.App.GetFileMetaWithAccess(c.Request.Context(), cl, docID, fileID)
 	if err != nil {
 		writeUsecaseError(c, err)
 		return

@@ -20,6 +20,12 @@ import (
 	"syscall"
 	"time"
 
+	pcfg "github.com/industrial-sed/platform/config"
+	"github.com/industrial-sed/platform/outbox"
+	"github.com/industrial-sed/platform/publish"
+	"github.com/industrial-sed/platform/runtime"
+	"github.com/industrial-sed/platform/transport"
+
 	"github.com/industrial-sed/sed-service/internal/clients"
 	"github.com/industrial-sed/sed-service/internal/config"
 	"github.com/industrial-sed/sed-service/internal/jwtverify"
@@ -91,7 +97,30 @@ func main() {
 	if cfg.SalesCallbackURL != "" && cfg.SalesCallbackSecret != "" {
 		sales = &clients.SalesCallback{BaseURL: cfg.SalesCallbackURL, Secret: cfg.SalesCallbackSecret}
 	}
-	app := &usecases.App{Store: store, WH: wh, Minio: minioClient, Prod: prod, Proc: proc, Sales: sales}
+	eventMode := transport.Mode(cfg.EventTransport)
+	if v := pcfg.EventTransport(); v != "" {
+		eventMode = transport.Mode(v)
+	}
+	brokers := cfg.KafkaBrokers
+	if len(brokers) == 0 {
+		brokers = pcfg.ParseBrokers("KAFKA_BROKERS", nil)
+	}
+	sedPub := &publish.SedSignedPublisher{
+		Mode:        eventMode,
+		Outbox:      outbox.NewStore(pool),
+		Production:  prod,
+		Procurement: proc,
+		Sales:       sales,
+	}
+	app := &usecases.App{
+		Store: store, WH: wh, Minio: minioClient,
+		Prod: prod, Proc: proc, Sales: sales,
+		SedPub: sedPub, Outbox: sedPub.Outbox,
+	}
+
+	bgCtx, bgCancel := context.WithCancel(context.Background())
+	defer bgCancel()
+	runtime.StartOutboxRelay(bgCtx, pool, brokers, string(eventMode), log)
 
 	r := server.NewRouter(server.Deps{
 		Log:    log,
@@ -118,6 +147,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
+	bgCancel()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Duration(config.ShutdownTimeout())*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {

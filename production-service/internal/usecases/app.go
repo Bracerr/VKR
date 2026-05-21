@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/industrial-sed/platform/publish"
 	"github.com/industrial-sed/production-service/internal/clients"
 	"github.com/industrial-sed/production-service/internal/config"
 	"github.com/industrial-sed/production-service/internal/repositories"
@@ -30,6 +31,7 @@ type App struct {
 	Store *repositories.Store
 	WH    Warehouse
 	SED   SED
-	Trace *clients.Traceability
-	Cfg   *config.Config
+	Trace    *clients.Traceability
+	TracePub *publish.TracePublisher
+	Cfg      *config.Config
 }

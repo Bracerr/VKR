@@ -27,18 +27,21 @@ func warehouseRefSet(raw json.RawMessage) bool {
 }
 
 // CreateDocument черновик.
-func (a *App) CreateDocument(ctx context.Context, tenant, authorSub string, typeID uuid.UUID, title string, payload json.RawMessage) (*models.Document, error) {
+func (a *App) CreateDocument(ctx context.Context, c *models.Claims, typeID uuid.UUID, title string, payload json.RawMessage) (*models.Document, error) {
 	tx, err := a.Store.BeginTx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	dt, err := a.Store.GetDocumentType(ctx, tx, tenant, typeID)
+	dt, err := a.Store.GetDocumentType(ctx, tx, c.TenantID, typeID)
 	if err != nil {
 		return nil, err
 	}
 	if dt == nil {
 		return nil, ErrNotFound
+	}
+	if !models.CanCreateDocument(c, dt) {
+		return nil, ErrForbidden
 	}
 	if len(payload) == 0 {
 		payload = json.RawMessage(`{}`)
@@ -46,13 +49,13 @@ func (a *App) CreateDocument(ctx context.Context, tenant, authorSub string, type
 	id := uuid.New()
 	num := fmt.Sprintf("DOC-%s", strings.ReplaceAll(id.String(), "-", "")[:12])
 	d := &models.Document{
-		ID: id, TenantCode: tenant, TypeID: typeID, Number: num, Title: title,
-		Status: "DRAFT", AuthorSub: authorSub, Payload: payload,
+		ID: id, TenantCode: c.TenantID, TypeID: typeID, Number: num, Title: title,
+		Status: "DRAFT", AuthorSub: c.Sub, Payload: payload,
 	}
 	if err := a.Store.CreateDocument(ctx, tx, d); err != nil {
 		return nil, err
 	}
-	if err := a.Store.InsertHistory(ctx, tx, d.ID, authorSub, "CREATE", histPayload(map[string]any{"number": num})); err != nil {
+	if err := a.Store.InsertHistory(ctx, tx, d.ID, c.Sub, "CREATE", histPayload(map[string]any{"number": num})); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -61,21 +64,15 @@ func (a *App) CreateDocument(ctx context.Context, tenant, authorSub string, type
 	return d, nil
 }
 
-// GetDocument возвращает документ.
-func (a *App) GetDocument(ctx context.Context, tenant string, id uuid.UUID) (*models.Document, error) {
-	d, err := a.Store.GetDocument(ctx, nil, tenant, id)
-	if err != nil {
-		return nil, err
-	}
-	if d == nil {
-		return nil, ErrNotFound
-	}
-	return d, nil
+// GetDocument возвращает документ с проверкой ACL.
+func (a *App) GetDocument(ctx context.Context, c *models.Claims, id uuid.UUID) (*models.Document, error) {
+	return a.ensureDocumentRead(ctx, c.TenantID, id, c)
 }
 
-// ListDocuments список.
-func (a *App) ListDocuments(ctx context.Context, tenant string, status *string, authorSub *string) ([]models.Document, error) {
-	return a.Store.ListDocuments(ctx, nil, tenant, status, authorSub)
+// ListDocuments список с ACL.
+func (a *App) ListDocuments(ctx context.Context, c *models.Claims, status *string, authorSub *string) ([]models.Document, error) {
+	adminAll := models.CanAdminSED(c)
+	return a.Store.ListDocuments(ctx, nil, c.TenantID, status, authorSub, c.Sub, c.RealmRoles, adminAll)
 }
 
 // UpdateDocument правка черновика автором.
@@ -396,20 +393,10 @@ func (a *App) SignDocument(ctx context.Context, tenant, authorSub string, id uui
 	if err := tx2.Commit(ctx); err != nil {
 		return err
 	}
-	if a.Prod != nil {
+	if a.SedPub != nil {
 		bg, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		_ = a.Prod.NotifyDocumentSigned(bg, tenant, d2.ID, dt.Code)
-	}
-	if a.Proc != nil {
-		bg, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		_ = a.Proc.NotifyDocumentSigned(bg, tenant, d2.ID, dt.Code)
-	}
-	if a.Sales != nil {
-		bg, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		_ = a.Sales.NotifyDocumentSigned(bg, tenant, d2.ID, dt.Code)
+		a.SedPub.PublishDocumentSigned(bg, tenant, d2.ID, dt.Code)
 	}
 	return nil
 }

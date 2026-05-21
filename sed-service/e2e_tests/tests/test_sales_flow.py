@@ -4,6 +4,8 @@ import uuid
 
 import requests
 
+from conftest import wait_until
+
 
 def test_sales_so_reserve_ship(auth_api, sed_api, wh_api, sales_api, headers_test, wh_svc_headers):
     # --- auth: superadmin ---
@@ -53,7 +55,16 @@ def test_sales_so_reserve_ship(auth_api, sed_api, wh_api, sales_api, headers_tes
     uid = r.json()["id"]
     temp_pw = r.json()["temporary_password"]
 
-    roles = ["sales_manager", "sales_viewer", "sed_admin", "sed_author", "sed_approver", "sed_viewer", "warehouse_admin"]
+    roles = [
+        "sales_manager",
+        "sales_viewer",
+        "sed_admin",
+        "sed_author",
+        "sed_approver",
+        "doc_read_sales",
+        "doc_write_sales",
+        "warehouse_admin",
+    ]
     r = requests.put(
         f"{auth_api}/api/v1/users/{uid}/roles",
         headers=h_ent,
@@ -172,9 +183,11 @@ def test_sales_so_reserve_ship(auth_api, sed_api, wh_api, sales_api, headers_tes
     r = requests.post(f"{sed_api}/api/v1/documents/{sed_doc_id}/sign", headers=h_user, timeout=60)
     assert r.status_code == 204, r.text
 
-    r = requests.get(f"{sales_api}/api/v1/sales-orders/{so_id}", headers=h_user, timeout=60)
-    assert r.status_code == 200, r.text
-    assert r.json()["so"]["status"] == "APPROVED"
+    def _so_approved():
+        r = requests.get(f"{sales_api}/api/v1/sales-orders/{so_id}", headers=h_user, timeout=60)
+        return r.status_code == 200 and r.json().get("so", {}).get("status") == "APPROVED"
+
+    wait_until(_so_approved, msg="SO APPROVED after SED sign")
 
     r = requests.post(f"{sales_api}/api/v1/sales-orders/{so_id}/release", headers=h_user, timeout=60)
     assert r.status_code == 204, r.text

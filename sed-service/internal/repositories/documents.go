@@ -77,22 +77,29 @@ func (s *Store) UpdateDocument(ctx context.Context, tx pgx.Tx, d *models.Documen
 	return err
 }
 
-// ListDocuments список.
-func (s *Store) ListDocuments(ctx context.Context, tx pgx.Tx, tenant string, status *string, authorSub *string) ([]models.Document, error) {
-	q := `SELECT id, tenant_code, type_id, number, title, status, author_sub, current_order_no, payload, warehouse_ref, created_at, updated_at
-		FROM documents WHERE tenant_code = $1`
+// ListDocuments список с ACL (adminAll — без фильтра по ролям).
+func (s *Store) ListDocuments(ctx context.Context, tx pgx.Tx, tenant string, status *string, authorSub *string, userSub string, roles []string, adminAll bool) ([]models.Document, error) {
+	q := `SELECT d.id, d.tenant_code, d.type_id, d.number, d.title, d.status, d.author_sub, d.current_order_no, d.payload, d.warehouse_ref, d.created_at, d.updated_at
+		FROM documents d
+		JOIN document_types dt ON dt.id = d.type_id AND dt.tenant_code = d.tenant_code
+		WHERE d.tenant_code = $1`
 	args := []interface{}{tenant}
 	n := 2
+	if !adminAll {
+		q += ` AND (d.author_sub = $` + strconv.Itoa(n) + ` OR dt.reader_roles && $` + strconv.Itoa(n+1) + `::text[])`
+		args = append(args, userSub, roles)
+		n += 2
+	}
 	if status != nil {
-		q += ` AND status = $` + strconv.Itoa(n)
+		q += ` AND d.status = $` + strconv.Itoa(n)
 		args = append(args, *status)
 		n++
 	}
 	if authorSub != nil {
-		q += ` AND author_sub = $` + strconv.Itoa(n)
+		q += ` AND d.author_sub = $` + strconv.Itoa(n)
 		args = append(args, *authorSub)
 	}
-	q += ` ORDER BY created_at DESC LIMIT 500`
+	q += ` ORDER BY d.created_at DESC LIMIT 500`
 	rows, err := s.db(tx).Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
@@ -245,6 +252,25 @@ func (s *Store) FindPendingApprovalForUser(ctx context.Context, tx pgx.Tx, docID
 		return nil, err
 	}
 	return &aid, nil
+}
+
+// DocumentHasPendingApprovalForUser есть ли у пользователя pending-согласование на текущем этапе.
+func (s *Store) DocumentHasPendingApprovalForUser(ctx context.Context, tx pgx.Tx, tenant string, docID uuid.UUID, userSub string, roles []string) (bool, error) {
+	var ok bool
+	err := s.db(tx).QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM documents d
+			JOIN document_approvals da ON da.document_id = d.id AND da.decision = 'PENDING'
+			JOIN workflow_steps ws ON ws.id = da.step_id
+			WHERE d.id = $1 AND d.tenant_code = $2 AND d.status = 'IN_REVIEW'
+			  AND ws.order_no = d.current_order_no
+			  AND (
+				(ws.required_user_sub IS NOT NULL AND ws.required_user_sub = $3)
+				OR (ws.required_role IS NOT NULL AND ws.required_role = ANY($4::text[]))
+			  )
+		)
+	`, docID, tenant, userSub, roles).Scan(&ok)
+	return ok, err
 }
 
 // InsertHistory аудит.

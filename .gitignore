@@ -1,2 +1,4 @@
 .venv-sed-e2e
 .env
+docs/rag/generated/
+docx

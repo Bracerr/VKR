@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shopspring/decimal"
 
-	"github.com/industrial-sed/warehouse-service/internal/clients"
 	"github.com/industrial-sed/warehouse-service/internal/models"
+	"github.com/industrial-sed/platform/publish"
 	"github.com/industrial-sed/warehouse-service/internal/repositories"
 )
 
@@ -18,7 +18,7 @@ import (
 type UC struct {
 	Store           *repositories.Store
 	DefaultCurrency string
-	Trace           *clients.Traceability
+	TracePub        *publish.TracePublisher
 }
 
 // ReceiptLineIn строка прихода.

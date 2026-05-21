@@ -83,15 +83,19 @@ func (a *App) OpenFileStream(ctx context.Context, objectKey string) (io.ReadClos
 }
 
 // ListDocumentFiles список вложений.
-func (a *App) ListDocumentFiles(ctx context.Context, tenant string, docID uuid.UUID) ([]models.DocumentFile, error) {
-	d, err := a.Store.GetDocument(ctx, nil, tenant, docID)
-	if err != nil {
+func (a *App) ListDocumentFiles(ctx context.Context, c *models.Claims, docID uuid.UUID) ([]models.DocumentFile, error) {
+	if _, err := a.ensureDocumentRead(ctx, c.TenantID, docID, c); err != nil {
 		return nil, err
 	}
-	if d == nil {
-		return nil, ErrNotFound
-	}
 	return a.Store.ListDocumentFiles(ctx, nil, docID)
+}
+
+// GetFileMeta метаданные файла с проверкой ACL на документ.
+func (a *App) GetFileMetaWithAccess(ctx context.Context, c *models.Claims, docID, fileID uuid.UUID) (*models.DocumentFile, error) {
+	if _, err := a.ensureDocumentRead(ctx, c.TenantID, docID, c); err != nil {
+		return nil, err
+	}
+	return a.GetFileMeta(ctx, c.TenantID, docID, fileID)
 }
 
 // DeleteFile удаляет вложение (черновик, автор).

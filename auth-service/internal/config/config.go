@@ -116,7 +116,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("enable_test_endpoints", false)
 	v.SetDefault("bootstrap_superadmin_password", "")
 	v.SetDefault("notifier_type", "mock")
-	v.SetDefault("kafka_topic_user_events", "user.events")
+	v.SetDefault("kafka_topic_user_events", "vkr.auth.user.created")
 	v.SetDefault("auth_login_rate_limit", 30)
 	v.SetDefault("otel_enabled", false)
 	v.SetDefault("otel_service_name", "auth-service")

@@ -51,9 +51,10 @@ type KafkaNotifier struct {
 // NewKafkaNotifier конструктор.
 func NewKafkaNotifier(brokers []string, topic string, log *slog.Logger) *KafkaNotifier {
 	w := &kafka.Writer{
-		Addr:     kafka.TCP(brokers...),
-		Topic:    topic,
-		Balancer: &kafka.LeastBytes{},
+		Addr:                   kafka.TCP(brokers...),
+		Topic:                  topic,
+		Balancer:               &kafka.LeastBytes{},
+		AllowAutoTopicCreation: true,
 	}
 	return &KafkaNotifier{writer: w, log: log}
 }

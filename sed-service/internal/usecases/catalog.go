@@ -128,7 +128,7 @@ func (a *App) DeleteWorkflowStep(ctx context.Context, tenant string, stepID uuid
 
 // --- Document types ---
 
-func (a *App) CreateDocumentType(ctx context.Context, tenant, code, name, whAction string, workflowID *uuid.UUID) (*models.DocumentType, error) {
+func (a *App) CreateDocumentType(ctx context.Context, tenant, code, name, whAction string, workflowID *uuid.UUID, readerRoles, writerRoles []string) (*models.DocumentType, error) {
 	tx, err := a.Store.BeginTx(ctx)
 	if err != nil {
 		return nil, err
@@ -150,6 +150,7 @@ func (a *App) CreateDocumentType(ctx context.Context, tenant, code, name, whActi
 	if dt.WarehouseAction == "" {
 		dt.WarehouseAction = "NONE"
 	}
+	dt.ReaderRoles, dt.WriterRoles = resolveTypeACL(code, dt.WarehouseAction, readerRoles, writerRoles)
 	if err := a.Store.CreateDocumentType(ctx, tx, dt); err != nil {
 		return nil, err
 	}
@@ -174,7 +175,7 @@ func (a *App) GetDocumentType(ctx context.Context, tenant string, id uuid.UUID) 
 	return dt, nil
 }
 
-func (a *App) UpdateDocumentType(ctx context.Context, tenant string, id uuid.UUID, name, whAction string, workflowID *uuid.UUID) error {
+func (a *App) UpdateDocumentType(ctx context.Context, tenant string, id uuid.UUID, name, whAction string, workflowID *uuid.UUID, readerRoles, writerRoles []string) error {
 	tx, err := a.Store.BeginTx(ctx)
 	if err != nil {
 		return err
@@ -199,6 +200,12 @@ func (a *App) UpdateDocumentType(ctx context.Context, tenant string, id uuid.UUI
 	dt.Name = name
 	dt.WarehouseAction = whAction
 	dt.DefaultWorkflowID = workflowID
+	if readerRoles != nil {
+		dt.ReaderRoles = readerRoles
+	}
+	if writerRoles != nil {
+		dt.WriterRoles = writerRoles
+	}
 	if err := a.Store.UpdateDocumentType(ctx, tx, dt); err != nil {
 		if err == pgx.ErrNoRows {
 			return ErrNotFound

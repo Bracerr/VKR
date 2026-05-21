@@ -40,6 +40,9 @@ type Config struct {
 
 	SalesCallbackURL    string `mapstructure:"sales_callback_url"`
 	SalesCallbackSecret string `mapstructure:"sales_callback_secret"`
+
+	KafkaBrokers   []string `mapstructure:"kafka_brokers"`
+	EventTransport string   `mapstructure:"event_transport"`
 }
 
 // Load читает конфиг.
@@ -92,6 +95,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("procurement_callback_secret", "")
 	v.SetDefault("sales_callback_url", "")
 	v.SetDefault("sales_callback_secret", "")
+	v.SetDefault("kafka_brokers", []string{})
+	v.SetDefault("event_transport", "http")
 }
 
 // Validate проверяет обязательные поля.
