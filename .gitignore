@@ -2,3 +2,8 @@
 .env
 docs/rag/generated/
 docx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
