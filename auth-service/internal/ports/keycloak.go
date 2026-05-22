@@ -32,6 +32,7 @@ type KeycloakClient interface {
 	DeleteUser(ctx context.Context, token, userID string) error
 	GetUsersInGroup(ctx context.Context, token, groupID string) ([]*gocloak.User, error)
 	GetUserByID(ctx context.Context, token, userID string) (*gocloak.User, error)
+	UpdateUser(ctx context.Context, token string, user gocloak.User) error
 	RealmRole(ctx context.Context, token, roleName string) (*gocloak.Role, error)
 	AddRealmRoleToUser(ctx context.Context, token, userID string, roles []gocloak.Role) error
 	SetRealmRolesForUser(ctx context.Context, token, userID string, roles []gocloak.Role) error

@@ -9,8 +9,9 @@ import (
 	"github.com/industrial-sed/auth-service/internal/ports"
 )
 
-// TestCleanup удаляет тенанты с заданным префиксом кода из БД и группы в Keycloak,
-// затем удаляет пользователей realm, у которых username содержит prefix (например test_).
+// TestCleanup удаляет тенанты с code LIKE prefix% из БД и группы в Keycloak,
+// затем удаляет пользователей realm, у которых username начинается с prefix (например test_).
+// Внимание: prefix=rag удалит тенант ragcorp (code LIKE 'rag%').
 func TestCleanup(ctx context.Context, prefix string, kc ports.KeycloakClient, tenants TenantRepository, users UserCacheRepository) error {
 	if prefix == "" {
 		prefix = "test_"

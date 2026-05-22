@@ -43,10 +43,6 @@ func (u *UserUC) CreateEntAdminBySuper(ctx context.Context, tenantCode, username
 	if err != nil {
 		return "", fmt.Errorf("create user: %w", err)
 	}
-	if err := u.kc.SetUserPassword(ctx, token, uid, password, false); err != nil {
-		_ = u.kc.DeleteUser(ctx, token, uid)
-		return "", err
-	}
 	if err := u.kc.AddUserToGroup(ctx, token, uid, tent.KeycloakGroupID); err != nil {
 		_ = u.kc.DeleteUser(ctx, token, uid)
 		return "", err
@@ -57,6 +53,10 @@ func (u *UserUC) CreateEntAdminBySuper(ctx context.Context, tenantCode, username
 		return "", err
 	}
 	if err := u.kc.AddRealmRoleToUser(ctx, token, uid, []gocloak.Role{*rr}); err != nil {
+		_ = u.kc.DeleteUser(ctx, token, uid)
+		return "", err
+	}
+	if err := finalizeKeycloakUser(ctx, u.kc, token, uid, login, tenantCode, password); err != nil {
 		_ = u.kc.DeleteUser(ctx, token, uid)
 		return "", err
 	}

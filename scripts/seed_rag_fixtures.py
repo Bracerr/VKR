@@ -196,23 +196,13 @@ def ensure_tenant(cfg: Cfg, super_tok: str) -> str:
     try:
         return login_test(cfg.auth_base, cfg.test_secret, ent_login, cfg.password)
     except ApiError:
-        # ent-admin мог остаться с временным паролем — пересоздаём через cleanup rag
-        req_json_retry(
-            "DELETE",
-            f"{cfg.auth_base}/api/v1/internal/test/cleanup?prefix=rag",
-            headers={"X-Test-Secret": cfg.test_secret},
-            expected=(204,),
-        )
+        # Не использовать cleanup?prefix=rag — удалит тенант ragcorp (LIKE rag%).
         req_json_retry(
             "POST",
-            f"{cfg.auth_base}/api/v1/tenants/{cfg.tenant}/ent-admin",
-            token=super_tok,
-            body={
-                "username": ENT_ADMIN_USER,
-                "email": f"{ENT_ADMIN_USER}@{cfg.tenant}.test.local",
-                "password": cfg.password,
-            },
-            expected=(201,),
+            f"{cfg.auth_base}/api/v1/internal/tenants/{cfg.tenant}/repair-passwords",
+            headers={"X-Service-Secret": cfg.rag_secret},
+            body={"password": cfg.password},
+            expected=(200,),
         )
         return login_test(cfg.auth_base, cfg.test_secret, ent_login, cfg.password)
 

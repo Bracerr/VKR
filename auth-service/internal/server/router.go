@@ -91,6 +91,7 @@ func NewRouter(d Deps) *gin.Engine {
 	internal.GET("/userinfo", middleware.JWTAuth(d.Parser), handlers.UserInfo)
 	if d.InternalUsers != nil {
 		internal.GET("/tenants/:code/users", d.InternalUsers.ListTenantUsers)
+		internal.POST("/tenants/:code/repair-passwords", d.InternalUsers.RepairPasswords)
 	}
 
 	if d.Config.EnableTestEndpoints {

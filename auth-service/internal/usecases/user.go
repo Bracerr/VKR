@@ -82,10 +82,6 @@ func (u *UserUC) CreateUser(ctx context.Context, actor *models.Claims, username,
 	}
 	// temporary=false: иначе Keycloak вешает required action «Update Password» и
 	// password grant (в т.ч. /internal/test/login) отвечает invalid_grant «Account is not fully set up».
-	if err := u.kc.SetUserPassword(ctx, token, uid, tempPassword, false); err != nil {
-		_ = u.kc.DeleteUser(ctx, token, uid)
-		return "", "", err
-	}
 	if err := u.kc.AddUserToGroup(ctx, token, uid, tent.KeycloakGroupID); err != nil {
 		_ = u.kc.DeleteUser(ctx, token, uid)
 		return "", "", err
@@ -96,6 +92,10 @@ func (u *UserUC) CreateUser(ctx context.Context, actor *models.Claims, username,
 		return "", "", err
 	}
 	if err := u.kc.AddRealmRoleToUser(ctx, token, uid, []gocloak.Role{*rr}); err != nil {
+		_ = u.kc.DeleteUser(ctx, token, uid)
+		return "", "", err
+	}
+	if err := finalizeKeycloakUser(ctx, u.kc, token, uid, login, tenant, tempPassword); err != nil {
 		_ = u.kc.DeleteUser(ctx, token, uid)
 		return "", "", err
 	}
@@ -139,7 +139,11 @@ func (u *UserUC) SetUserPassword(ctx context.Context, actor *models.Claims, user
 	if err := u.ensureUserInTenant(ctx, token, actor.TenantID, userID); err != nil {
 		return err
 	}
-	return u.kc.SetUserPassword(ctx, token, userID, password, false)
+	uc, err := u.users.GetByKeycloakID(ctx, userID)
+	if err != nil || uc == nil {
+		return u.kc.SetUserPassword(ctx, token, userID, password, false)
+	}
+	return finalizeKeycloakUser(ctx, u.kc, token, userID, uc.Username, uc.TenantCode, password)
 }
 
 func allowedRole(r string) bool {
