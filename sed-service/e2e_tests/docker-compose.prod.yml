@@ -6,11 +6,15 @@ services:
     environment:
       KC_PROXY: edge
       KC_HOSTNAME_STRICT: "false"
+      # Публичный хост:порт gateway (без http://) — иначе редиректы на keycloak_upstream / localhost.
+      KC_HOSTNAME: ${KC_HOSTNAME:-85.236.191.21}
+      KC_HOSTNAME_PORT: ${API_GATEWAY_PORT:-52565}
 
   auth-service:
     environment:
-      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:5656}
-      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:5656}
+      # Должны совпадать с URL в браузере (не localhost, если заходите с другой машины).
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?set KEYCLOAK_PUBLIC_URL in .env e.g. http://85.236.191.21:52565}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:?set API_PUBLIC_URL in .env e.g. http://85.236.191.21:52565}
       # Создание пользователей не должно падать из‑за Kafka (иначе rag-seed: 500).
       NOTIFIER_TYPE: ${NOTIFIER_TYPE:-mock}
 

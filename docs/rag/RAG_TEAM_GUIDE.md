@@ -2,7 +2,6 @@
 
 Корпус из **50 документов СЭД** (10 типов × 5), **11 учётных записей** (включая сервисный аккаунт) с разным ACL и JSON-manifest для индексации и проверки фильтрации по ролям.
 
-  
 **Формат логина:** `{username}@ragcorp`  
 **Общий пароль всех** `rag_`***:**  Уточнить у администратора
 
@@ -15,8 +14,6 @@ http://85.236.191.21:52565/
 ---
 
 ## Учётные записи
-
-
 
 
 | Username           | Логин                      | Пароль                    | Роли                                  | `GET /api/v1/documents`                                    |
@@ -45,6 +42,7 @@ curl -s -X POST "$API_BASE/api/v1/internal/test/login" \
   -H "X-Test-Secret: SECRET" -H "Content-Type: application/json" \
   -d '{"username":"rag_service@ragcorp","password":"PASSWORD"}'
 ```
+
 Secret & Password уточнить у администратора
 
 ### Какие типы документов видит роль
@@ -63,8 +61,8 @@ Secret & Password уточнить у администратора
 | `RAG_WH_CONSUME`             | `RAG-WC-xxx`     | warehouse                 |
 | `RAG_WH_RECEIPT`             | `RAG-WT-xxx`     | warehouse                 |
 
----
 
+---
 
 ### Индексация
 
@@ -79,6 +77,7 @@ X-Tenant-Id: ragcorp
 ```
 
 Отдает json 
+
 ```
 {
   "documents": [
@@ -104,7 +103,10 @@ X-Tenant-Id: ragcorp
   ]
 }
 ```
+
 Где:
+
 - text полное содеражние документа
 - access список ролей для чтения, записи, апрува, администрирования
 - attachments информация о файле и ссылка для его скачивания
+
