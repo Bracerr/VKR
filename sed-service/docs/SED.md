@@ -94,4 +94,4 @@ Sales-service находит SO по `sed_document_id` и переводит з�
 
 ## RAG test fixtures
 
-Тестовый корпус для команды RAG: 50 документов, пользователи `rag_*`, manifest в `docs/rag/generated/`. См. [`docs/rag/RAG_TEAM_GUIDE.md`](../../docs/rag/RAG_TEAM_GUIDE.md). На проде создаётся автоматически при `make prod-up` (контейнер `rag-seed`); API снаружи — один порт gateway (`API_GATEWAY_PORT` в `.env`, по умолчанию **52556**; внутри контейнера nginx слушает **5656**).
+Тестовый корпус для команды RAG: 50 документов, пользователи `rag_*`, manifest в `docs/rag/generated/`. См. [`docs/rag/RAG_TEAM_GUIDE.md`](../../docs/rag/RAG_TEAM_GUIDE.md). На проде создаётся автоматически при `make prod-up` (контейнер `rag-seed`); API снаружи — **52556** (`API_GATEWAY_PUBLIC_PORT`); на хосте Docker — **5566** (`API_GATEWAY_HOST_PORT`); nginx в контейнере — **5656**.
