@@ -52,9 +52,38 @@ type Document struct {
 	AuthorSub        string          `json:"author_sub"`
 	CurrentOrderNo   *int            `json:"current_order_no,omitempty"`
 	Payload          json.RawMessage `json:"payload"`
+	RagContent       json.RawMessage `json:"-"`
 	WarehouseRef     json.RawMessage `json:"warehouse_ref,omitempty"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
+}
+
+// DocumentPublic — карточка документа для пользовательского API (без rag_content).
+type DocumentPublic struct {
+	ID             uuid.UUID       `json:"id"`
+	TenantCode     string          `json:"tenant_code"`
+	TypeID         uuid.UUID       `json:"type_id"`
+	Number         string          `json:"number"`
+	Title          string          `json:"title"`
+	Status         string          `json:"status"`
+	AuthorSub      string          `json:"author_sub"`
+	CurrentOrderNo *int            `json:"current_order_no,omitempty"`
+	Payload        json.RawMessage `json:"payload"`
+	WarehouseRef   json.RawMessage `json:"warehouse_ref,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
+}
+
+// ToDocumentPublic убирает поля индексации RAG из ответа API.
+func ToDocumentPublic(d *Document) DocumentPublic {
+	if d == nil {
+		return DocumentPublic{}
+	}
+	return DocumentPublic{
+		ID: d.ID, TenantCode: d.TenantCode, TypeID: d.TypeID, Number: d.Number,
+		Title: d.Title, Status: d.Status, AuthorSub: d.AuthorSub, CurrentOrderNo: d.CurrentOrderNo,
+		Payload: d.Payload, WarehouseRef: d.WarehouseRef, CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt,
+	}
 }
 
 // DocumentApproval строка согласования.

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from dataclasses import dataclass, field
@@ -15,6 +16,7 @@ from typing import Any
 # scripts/lib
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.http_api import ApiError, find_by_code, login_test, pick, req_json  # noqa: E402
+from rag_fixture_payloads import business_payload, rag_content, rag_headers  # noqa: E402
 
 
 def req_json_retry(*args, retries: int = 12, **kwargs):
@@ -109,6 +111,7 @@ class Cfg:
     wh_base: str
     test_secret: str
     wh_secret: str
+    rag_secret: str
     tenant: str
     password: str
     output_dir: Path
@@ -138,6 +141,10 @@ def load_cfg(args: argparse.Namespace) -> Cfg:
         wh_base=args.wh_base.rstrip("/"),
         test_secret=os.getenv("AUTH_TEST_SECRET", os.getenv("TEST_SECRET", "e2e-test-secret")),
         wh_secret=os.getenv("WAREHOUSE_SERVICE_SECRET", "sed-e2e-wh-secret"),
+        rag_secret=os.getenv(
+            "RAG_CORPUS_SECRET",
+            os.getenv("AUTH_SERVICE_SECRET", "e2e-service-secret"),
+        ),
         tenant=os.getenv("RAG_FIXTURES_TENANT", TENANT_DEFAULT),
         password=os.getenv("RAG_FIXTURES_PASSWORD", "RagTest2026!"),
         output_dir=Path(os.getenv("RAG_FIXTURES_OUTPUT", "docs/rag/generated")),
@@ -403,32 +410,59 @@ def author_for_type(code: str) -> str:
     return "rag_admin"
 
 
-def doc_payload(cfg: Cfg, st: SeedState, code: str, slug: str, idx: int) -> dict[str, Any]:
-    rag_id = f"RAG-{slug}-{idx:03d}"
-    base = {
-        "rag_id": rag_id,
-        "description": (
-            f"Тестовый документ {rag_id} для индексации RAG. "
-            f"Тип {code}. Ключевые слова: закупки продажи склад производство."
-        ),
-        "keywords": [slug.lower(), "rag", "fixture", f"doc-{idx}"],
-    }
-    if code in WAREHOUSE_TYPES and st.wh_ids:
-        base.update(
-            {
-                "warehouse_id": st.wh_ids["warehouse_id"],
-                "default_bin_id": st.wh_ids["bin_id"],
-                "lines": [
-                    {
-                        "product_id": st.wh_ids["product_id"],
-                        "qty": "2",
-                        "reason": rag_id,
-                        "doc_ref": rag_id,
-                    }
-                ],
-            }
+def parse_rag_ref(title: str) -> tuple[str, int] | None:
+    m = re.search(r"(RAG-[A-Z]{2}-\d{3})", title or "")
+    if not m:
+        return None
+    rag_id = m.group(1)
+    slug = rag_id.split("-")[1]
+    idx = int(rag_id.split("-")[-1])
+    code = next((c for c, s in TYPE_SLUG.items() if s == slug), "")
+    return code, idx
+
+
+def put_rag_content(cfg: Cfg, doc_id: str, content: dict[str, Any]) -> None:
+    req_json_retry(
+        "PUT",
+        f"{cfg.sed_base}/api/v1/internal/rag/documents/{doc_id}/content",
+        headers=rag_headers(cfg.tenant, cfg.rag_secret),
+        body={"rag_content": content},
+        expected=(204,),
+    )
+
+
+def put_document_fixture(
+    cfg: Cfg, doc_id: str, title: str, payload: dict[str, Any], content: dict[str, Any]
+) -> None:
+    req_json_retry(
+        "PUT",
+        f"{cfg.sed_base}/api/v1/internal/rag/documents/{doc_id}/fixture",
+        headers=rag_headers(cfg.tenant, cfg.rag_secret),
+        body={"title": title, "payload": payload, "rag_content": content},
+        expected=(204,),
+    )
+
+
+def refresh_existing_rag_docs(cfg: Cfg, st: SeedState, rag_existing: list[dict[str, Any]]) -> None:
+    admin_tok = st.users["rag_admin"]["token"]
+    for d in rag_existing:
+        parsed = parse_rag_ref(d.get("title") or "")
+        if not parsed:
+            continue
+        code, idx = parsed
+        slug = TYPE_SLUG.get(code, "")
+        title, payload = business_payload(code, slug, idx, st.wh_ids or None)
+        doc_id = pick(d, "id")
+        content = rag_content(code, slug, idx, title, payload)
+        put_document_fixture(cfg, doc_id, title, payload, content)
+        full = req_json_retry(
+            "GET",
+            f"{cfg.sed_base}/api/v1/documents/{doc_id}",
+            token=admin_tok,
+            expected=(200,),
         )
-    return base
+        st.documents.append(normalize_doc(full, st))
+    build_manifest_ids(st)
 
 
 def advance_document(cfg: Cfg, tok: str, doc_id: str, target: str, approver_tok: str) -> None:
@@ -457,10 +491,8 @@ def create_documents(cfg: Cfg, st: SeedState) -> None:
     existing = req_json_retry("GET", f"{cfg.sed_base}/api/v1/documents", token=admin_tok, expected=(200,)) or []
     rag_existing = [d for d in existing if "RAG-" in (d.get("title") or "")]
     if len(rag_existing) >= 50:
-        print(f"found {len(rag_existing)} RAG documents, skip creation")
-        for d in rag_existing:
-            st.documents.append(normalize_doc(d, st))
-        build_manifest_ids(st)
+        print(f"found {len(rag_existing)} RAG documents, refresh content (skip creation)")
+        refresh_existing_rag_docs(cfg, st, rag_existing)
         return
 
     targets = ["APPROVED", "APPROVED", "APPROVED", "DRAFT", "IN_REVIEW"]
@@ -473,11 +505,11 @@ def create_documents(cfg: Cfg, st: SeedState) -> None:
             target = targets[i - 1]
             if code == "RAG_WH_RESERVE" and i == 1 and st.wh_ids:
                 target = "SIGNED"
-            title = f"{rag_id}: {code}"
+            title, payload = business_payload(code, slug, i, st.wh_ids or None)
             body = {
                 "type_id": st.type_ids[code],
                 "title": title,
-                "payload": doc_payload(cfg, st, code, slug, i),
+                "payload": payload,
             }
             time.sleep(0.5)
             doc = req_json_retry(
@@ -488,6 +520,7 @@ def create_documents(cfg: Cfg, st: SeedState) -> None:
                 expected=(201,),
             )
             doc_id = pick(doc, "id")
+            put_rag_content(cfg, doc_id, rag_content(code, slug, i, title, payload))
             advance_document(cfg, author_tok, doc_id, target, approver_tok)
             full = req_json_retry(
                 "GET",
@@ -499,6 +532,8 @@ def create_documents(cfg: Cfg, st: SeedState) -> None:
             entry["rag_id"] = rag_id
             entry["target_status"] = target
             st.documents.append(entry)
+            # публичный payload не должен содержать поля RAG
+            assert "rag_id" not in (full.get("payload") or {}), "rag fields leaked to public API"
     build_manifest_ids(st)
 
 
@@ -512,7 +547,6 @@ def normalize_doc(d: dict[str, Any], st: SeedState) -> dict[str, Any]:
             payload = json.loads(payload)
         except json.JSONDecodeError:
             payload = {"raw": payload}
-    desc = payload.get("description", "") if isinstance(payload, dict) else ""
     title = d.get("title") or ""
     return {
         "document_id": pick(d, "id"),
@@ -524,8 +558,16 @@ def normalize_doc(d: dict[str, Any], st: SeedState) -> dict[str, Any]:
         "payload": payload,
         "reader_roles": meta.get("reader_roles", []),
         "writer_roles": meta.get("writer_roles", []),
-        "search_text": f"{title}\n{desc}",
     }
+
+
+def fetch_rag_corpus(cfg: Cfg) -> dict[str, Any]:
+    return req_json_retry(
+        "GET",
+        f"{cfg.sed_base}/api/v1/internal/rag/corpus",
+        headers=rag_headers(cfg.tenant, cfg.rag_secret),
+        expected=(200,),
+    ) or {}
 
 
 def build_manifest_ids(st: SeedState) -> None:
@@ -648,8 +690,33 @@ def write_manifests(cfg: Cfg, st: SeedState, report: dict[str, Any]) -> None:
     out.mkdir(parents=True, exist_ok=True)
     st.users["_tenant"] = cfg.tenant
     build_manifest_ids(st)
+    corpus = fetch_rag_corpus(cfg)
+    corpus_docs = []
+    for d in corpus.get("documents") or []:
+        content = d.get("content") or {}
+        if isinstance(content, str):
+            try:
+                content = json.loads(content)
+            except json.JSONDecodeError:
+                content = {}
+        corpus_docs.append(
+            {
+                "document_id": d.get("document_id"),
+                "type_id": d.get("type_id"),
+                "type_code": d.get("type_code"),
+                "title": d.get("title"),
+                "status": d.get("status"),
+                "author_sub": d.get("author_sub"),
+                "payload": d.get("payload"),
+                "reader_roles": d.get("reader_roles"),
+                "writer_roles": d.get("writer_roles"),
+                "search_text": d.get("search_text") or content.get("search_text", ""),
+                "rag_id": content.get("rag_id"),
+                "content": content,
+            }
+        )
     (out / "corpus_full.json").write_text(
-        json.dumps({"tenant": cfg.tenant, "documents": st.documents}, ensure_ascii=False, indent=2),
+        json.dumps({"tenant": cfg.tenant, "documents": corpus_docs}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     (out / "document_types.json").write_text(
@@ -669,8 +736,18 @@ def write_manifests(cfg: Cfg, st: SeedState, report: dict[str, Any]) -> None:
         ),
         encoding="utf-8",
     )
+    access_from_api = [
+        {
+            "username": (u.get("username") or "").split("@")[0],
+            "login": u.get("login"),
+            "roles": u.get("roles"),
+            "visible_document_ids": u.get("visible_document_ids"),
+            "expected_count": u.get("expected_count"),
+        }
+        for u in corpus.get("users") or []
+    ]
     (out / "access_matrix.json").write_text(
-        json.dumps(report.get("matrix", []), ensure_ascii=False, indent=2),
+        json.dumps(access_from_api or report.get("matrix", []), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     (out / "verification_report.json").write_text(

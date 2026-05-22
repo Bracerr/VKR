@@ -160,6 +160,14 @@ func allowedRole(r string) bool {
 	}
 }
 
+// ListUsersByTenantCode пользователи тенанта (internal / service).
+func (u *UserUC) ListUsersByTenantCode(ctx context.Context, tenantCode string) ([]models.UserCache, error) {
+	if tenantCode == "" {
+		return nil, fmt.Errorf("tenant code required")
+	}
+	return u.users.ListByTenant(ctx, tenantCode)
+}
+
 // ListUsers пользователи текущего тенанта (кэш + сверка с KC).
 func (u *UserUC) ListUsers(ctx context.Context, actor *models.Claims) ([]models.UserCache, error) {
 	if actor == nil || actor.TenantID == "" {

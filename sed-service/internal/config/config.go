@@ -43,6 +43,10 @@ type Config struct {
 
 	KafkaBrokers   []string `mapstructure:"kafka_brokers"`
 	EventTransport string   `mapstructure:"event_transport"`
+
+	AuthServiceBaseURL string `mapstructure:"auth_service_base_url"`
+	AuthServiceSecret  string `mapstructure:"auth_service_secret"`
+	RagCorpusSecret    string `mapstructure:"rag_corpus_secret"`
 }
 
 // Load читает конфиг.
@@ -97,6 +101,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("sales_callback_secret", "")
 	v.SetDefault("kafka_brokers", []string{})
 	v.SetDefault("event_transport", "http")
+	v.SetDefault("auth_service_base_url", "http://localhost:8080")
+	v.SetDefault("auth_service_secret", "")
+	v.SetDefault("rag_corpus_secret", "")
 }
 
 // Validate проверяет обязательные поля.

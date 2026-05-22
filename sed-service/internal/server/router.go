@@ -9,6 +9,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"github.com/industrial-sed/sed-service/internal/clients"
 	"github.com/industrial-sed/sed-service/internal/config"
 	"github.com/industrial-sed/sed-service/internal/handlers"
 	"github.com/industrial-sed/sed-service/internal/jwtverify"
@@ -49,6 +50,17 @@ func NewRouter(d Deps) *gin.Engine {
 	r.Use(middleware.PerIPRateLimit(d.Cfg.RateLimitPerMinute))
 
 	h := &handlers.HTTP{App: d.App}
+	ragSecret := d.Cfg.RagCorpusSecret
+	if ragSecret == "" {
+		ragSecret = d.Cfg.AuthServiceSecret
+	}
+	var ragH *handlers.RagInternalHandler
+	if ragSecret != "" {
+		ragH = &handlers.RagInternalHandler{
+			App: d.App,
+			AuthUsers: clients.NewAuthUsersClient(d.Cfg.AuthServiceBaseURL, d.Cfg.AuthServiceSecret),
+		}
+	}
 
 	r.GET("/health", handlers.Health)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -103,6 +115,14 @@ func NewRouter(d Deps) *gin.Engine {
 		appr.GET("/tasks", h.ListTasks)
 		appr.POST("/documents/:id/approve", h.ApproveDocument)
 		appr.POST("/documents/:id/reject", h.RejectDocument)
+	}
+
+	if ragH != nil {
+		internal := r.Group("/api/v1/internal/rag")
+		internal.Use(middleware.ServiceSecret(ragSecret))
+		internal.GET("/corpus", ragH.GetCorpus)
+		internal.PUT("/documents/:id/fixture", ragH.UpdateDocumentFixture)
+		internal.PUT("/documents/:id/content", ragH.SetDocumentRagContent)
 	}
 
 	return r

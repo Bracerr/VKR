@@ -13,12 +13,18 @@ import (
 	"github.com/industrial-sed/sed-service/internal/models"
 )
 
+const documentSelectCols = `id, tenant_code, type_id, number, title, status, author_sub, current_order_no, payload, rag_content, warehouse_ref, created_at, updated_at`
+
 // CreateDocument создаёт документ.
 func (s *Store) CreateDocument(ctx context.Context, tx pgx.Tx, d *models.Document) error {
+	rag := d.RagContent
+	if len(rag) == 0 {
+		rag = json.RawMessage(`{}`)
+	}
 	_, err := s.db(tx).Exec(ctx, `
-		INSERT INTO documents (id, tenant_code, type_id, number, title, status, author_sub, current_order_no, payload, warehouse_ref)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-	`, d.ID, d.TenantCode, d.TypeID, d.Number, d.Title, d.Status, d.AuthorSub, d.CurrentOrderNo, d.Payload, d.WarehouseRef)
+		INSERT INTO documents (id, tenant_code, type_id, number, title, status, author_sub, current_order_no, payload, rag_content, warehouse_ref)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+	`, d.ID, d.TenantCode, d.TypeID, d.Number, d.Title, d.Status, d.AuthorSub, d.CurrentOrderNo, d.Payload, rag, d.WarehouseRef)
 	return err
 }
 
@@ -26,18 +32,22 @@ func (s *Store) CreateDocument(ctx context.Context, tx pgx.Tx, d *models.Documen
 func (s *Store) GetDocument(ctx context.Context, tx pgx.Tx, tenant string, id uuid.UUID) (*models.Document, error) {
 	var d models.Document
 	var wh []byte
+	var rag []byte
 	err := s.db(tx).QueryRow(ctx, `
-		SELECT id, tenant_code, type_id, number, title, status, author_sub, current_order_no, payload, warehouse_ref, created_at, updated_at
+		SELECT `+documentSelectCols+`
 		FROM documents WHERE id = $1 AND tenant_code = $2
 	`, id, tenant).Scan(
 		&d.ID, &d.TenantCode, &d.TypeID, &d.Number, &d.Title, &d.Status, &d.AuthorSub, &d.CurrentOrderNo,
-		&d.Payload, &wh, &d.CreatedAt, &d.UpdatedAt,
+		&d.Payload, &rag, &wh, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if len(rag) > 0 {
+		d.RagContent = json.RawMessage(rag)
 	}
 	if len(wh) > 0 {
 		d.WarehouseRef = json.RawMessage(wh)
@@ -49,18 +59,22 @@ func (s *Store) GetDocument(ctx context.Context, tx pgx.Tx, tenant string, id uu
 func (s *Store) LockDocumentForUpdate(ctx context.Context, tx pgx.Tx, tenant string, id uuid.UUID) (*models.Document, error) {
 	var d models.Document
 	var wh []byte
+	var rag []byte
 	err := s.db(tx).QueryRow(ctx, `
-		SELECT id, tenant_code, type_id, number, title, status, author_sub, current_order_no, payload, warehouse_ref, created_at, updated_at
+		SELECT `+documentSelectCols+`
 		FROM documents WHERE id = $1 AND tenant_code = $2 FOR UPDATE
 	`, id, tenant).Scan(
 		&d.ID, &d.TenantCode, &d.TypeID, &d.Number, &d.Title, &d.Status, &d.AuthorSub, &d.CurrentOrderNo,
-		&d.Payload, &wh, &d.CreatedAt, &d.UpdatedAt,
+		&d.Payload, &rag, &wh, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
+	}
+	if len(rag) > 0 {
+		d.RagContent = json.RawMessage(rag)
 	}
 	if len(wh) > 0 {
 		d.WarehouseRef = json.RawMessage(wh)
@@ -79,7 +93,7 @@ func (s *Store) UpdateDocument(ctx context.Context, tx pgx.Tx, d *models.Documen
 
 // ListDocuments список с ACL (adminAll — без фильтра по ролям).
 func (s *Store) ListDocuments(ctx context.Context, tx pgx.Tx, tenant string, status *string, authorSub *string, userSub string, roles []string, adminAll bool) ([]models.Document, error) {
-	q := `SELECT d.id, d.tenant_code, d.type_id, d.number, d.title, d.status, d.author_sub, d.current_order_no, d.payload, d.warehouse_ref, d.created_at, d.updated_at
+	q := `SELECT d.id, d.tenant_code, d.type_id, d.number, d.title, d.status, d.author_sub, d.current_order_no, d.payload, d.rag_content, d.warehouse_ref, d.created_at, d.updated_at
 		FROM documents d
 		JOIN document_types dt ON dt.id = d.type_id AND dt.tenant_code = d.tenant_code
 		WHERE d.tenant_code = $1`
@@ -113,9 +127,13 @@ func scanDocuments(rows pgx.Rows) ([]models.Document, error) {
 	for rows.Next() {
 		var d models.Document
 		var wh []byte
+		var rag []byte
 		if err := rows.Scan(&d.ID, &d.TenantCode, &d.TypeID, &d.Number, &d.Title, &d.Status, &d.AuthorSub, &d.CurrentOrderNo,
-			&d.Payload, &wh, &d.CreatedAt, &d.UpdatedAt); err != nil {
+			&d.Payload, &rag, &wh, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, err
+		}
+		if len(rag) > 0 {
+			d.RagContent = json.RawMessage(rag)
 		}
 		if len(wh) > 0 {
 			d.WarehouseRef = json.RawMessage(wh)
@@ -125,11 +143,29 @@ func scanDocuments(rows pgx.Rows) ([]models.Document, error) {
 	return out, rows.Err()
 }
 
+// UpdateDocumentRagContent обновляет только поле индексации RAG.
+func (s *Store) UpdateDocumentRagContent(ctx context.Context, tx pgx.Tx, tenant string, id uuid.UUID, rag json.RawMessage) error {
+	if len(rag) == 0 {
+		rag = json.RawMessage(`{}`)
+	}
+	tag, err := s.db(tx).Exec(ctx, `
+		UPDATE documents SET rag_content = $3, updated_at = now()
+		WHERE id = $1 AND tenant_code = $2
+	`, id, tenant, rag)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
 // ListDocumentsPendingApproval документы, где пользователь может согласовать текущий этап.
 func (s *Store) ListDocumentsPendingApproval(ctx context.Context, tx pgx.Tx, tenant, userSub string, roles []string) ([]models.Document, error) {
 	// Пользователь подходит к шагу, если pending и (required_user_sub = sub ИЛИ required_role IN roles)
 	rows, err := s.db(tx).Query(ctx, `
-		SELECT DISTINCT d.id, d.tenant_code, d.type_id, d.number, d.title, d.status, d.author_sub, d.current_order_no, d.payload, d.warehouse_ref, d.created_at, d.updated_at
+		SELECT DISTINCT d.id, d.tenant_code, d.type_id, d.number, d.title, d.status, d.author_sub, d.current_order_no, d.payload, d.rag_content, d.warehouse_ref, d.created_at, d.updated_at
 		FROM documents d
 		JOIN document_approvals da ON da.document_id = d.id AND da.decision = 'PENDING'
 		JOIN workflow_steps ws ON ws.id = da.step_id

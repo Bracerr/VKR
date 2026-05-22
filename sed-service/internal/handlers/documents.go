@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/industrial-sed/sed-service/internal/middleware"
+	"github.com/industrial-sed/sed-service/internal/models"
 )
 
 type createDocumentReq struct {
@@ -41,7 +42,7 @@ func (h *HTTP) ListDocuments(c *gin.Context) {
 		writeUsecaseError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, list)
+	c.JSON(http.StatusOK, documentsPublic(list))
 }
 
 // GetDocument GET /documents/:id
@@ -56,7 +57,7 @@ func (h *HTTP) GetDocument(c *gin.Context) {
 		writeUsecaseError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, d)
+	c.JSON(http.StatusOK, models.ToDocumentPublic(d))
 }
 
 // CreateDocument POST /documents
@@ -72,7 +73,7 @@ func (h *HTTP) CreateDocument(c *gin.Context) {
 		writeUsecaseError(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, d)
+	c.JSON(http.StatusCreated, models.ToDocumentPublic(d))
 }
 
 // PatchDocument PATCH /documents/:id

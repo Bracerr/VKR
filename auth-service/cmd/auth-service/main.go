@@ -143,19 +143,21 @@ func main() {
 
 	tenantH := handlers.NewTenantHandler(tuc, uuc)
 	userH := handlers.NewUserHandler(uuc)
+	internalUsersH := handlers.NewInternalUsersHandler(uuc)
 	authH := handlers.NewAuthHandler(authUC, parser, cfg.CookieSecure())
 	testH := handlers.NewTestHandler(kc, tenantRepo, userRepo)
 
 	r := server.NewRouter(server.Deps{
-		Config:   cfg,
-		Log:      log,
-		DB:       pool,
-		Parser:   parser,
-		TenantUC: tenantH,
-		UserUC:   userH,
-		Auth:     authH,
-		Test:     testH,
-		OTel:     cfg.OTelEnabled,
+		Config:        cfg,
+		Log:           log,
+		DB:            pool,
+		Parser:        parser,
+		TenantUC:      tenantH,
+		UserUC:        userH,
+		InternalUsers: internalUsersH,
+		Auth:          authH,
+		Test:          testH,
+		OTel:          cfg.OTelEnabled,
 	})
 
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: r}

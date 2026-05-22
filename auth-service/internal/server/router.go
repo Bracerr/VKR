@@ -24,9 +24,10 @@ type Deps struct {
 	DB       *pgxpool.Pool
 	Parser   *jwtverify.Parser
 	TenantUC *handlers.TenantHandler
-	UserUC   *handlers.UserHandler
-	Auth     *handlers.AuthHandler
-	Test     *handlers.TestHandler
+	UserUC         *handlers.UserHandler
+	InternalUsers  *handlers.InternalUsersHandler
+	Auth           *handlers.AuthHandler
+	Test           *handlers.TestHandler
 	OTel     bool
 }
 
@@ -88,6 +89,9 @@ func NewRouter(d Deps) *gin.Engine {
 	internal := v1.Group("/internal")
 	internal.Use(middleware.ServiceSecret(d.Config.ServiceSecret))
 	internal.GET("/userinfo", middleware.JWTAuth(d.Parser), handlers.UserInfo)
+	if d.InternalUsers != nil {
+		internal.GET("/tenants/:code/users", d.InternalUsers.ListTenantUsers)
+	}
 
 	if d.Config.EnableTestEndpoints {
 		test := v1.Group("/internal/test")
