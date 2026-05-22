@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-BASE="${1:-http://85.236.191.21:52565}"
+BASE="${1:-http://85.236.191.21:52556}"
 SECRET="${2:-e2e-test-secret}"
 
 login() {

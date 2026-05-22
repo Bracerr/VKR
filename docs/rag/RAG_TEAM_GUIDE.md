@@ -8,7 +8,7 @@
 **Базовый URL стенда (один порт для всего API и Keycloak):**
 
 ```text
-http://85.236.191.21:52565/
+http://85.236.191.21:52556/
 ```
 
 ---
@@ -71,7 +71,7 @@ Secret & Password уточнить у администратора
 Корпус для RAG и матрица видимости — **закрытая сервисная ручка**:
 
 ```http
-GET http://<хост>:52565/api/v1/internal/rag/corpus
+GET http://<хост>:52556/api/v1/internal/rag/corpus
 X-Service-Secret: e2e-service-secret
 X-Tenant-Id: ragcorp
 ```
@@ -96,7 +96,7 @@ X-Tenant-Id: ragcorp
           "name": "договор.pdf",
           "content_type": "application/pdf",
           "size_bytes": 12345,
-          "url": "http://85.236.191.21:52565/api/v1/internal/rag/documents/{doc_id}/files/{file_id}"
+          "url": "http://85.236.191.21:52556/api/v1/internal/rag/documents/{doc_id}/files/{file_id}"
         }
       ]
     }

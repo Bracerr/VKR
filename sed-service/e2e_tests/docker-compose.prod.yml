@@ -8,22 +8,22 @@ services:
       KC_HOSTNAME_STRICT: "false"
       # Публичный хост:порт gateway (без http://) — иначе редиректы на keycloak_upstream / localhost.
       KC_HOSTNAME: ${KC_HOSTNAME:-85.236.191.21}
-      KC_HOSTNAME_PORT: ${API_GATEWAY_PORT:-52565}
+      KC_HOSTNAME_PORT: ${API_GATEWAY_PORT:-52556}
 
   auth-service:
     environment:
       # Должны совпадать с URL в браузере (не localhost, если заходите с другой машины).
-      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?set KEYCLOAK_PUBLIC_URL in .env e.g. http://85.236.191.21:52565}
-      API_PUBLIC_URL: ${API_PUBLIC_URL:?set API_PUBLIC_URL in .env e.g. http://85.236.191.21:52565}
+      KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?set KEYCLOAK_PUBLIC_URL in .env e.g. http://85.236.191.21:52556}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:?set API_PUBLIC_URL in .env e.g. http://85.236.191.21:52556}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       # Создание пользователей не должно падать из‑за Kafka (иначе rag-seed: 500).
       NOTIFIER_TYPE: ${NOTIFIER_TYPE:-mock}
 
   gateway:
     image: nginx:1.26-alpine
-    # Хост-порт = API_GATEWAY_PORT (.env); внутри nginx слушает 5656. Не путать: на роутере пробрасывать 52565→52565, не 5656.
+    # Хост-порт = API_GATEWAY_PORT (.env); внутри nginx слушает 5656. Не путать: на роутере пробрасывать 52556→52556, не 5656.
     ports:
-      - "${API_GATEWAY_PORT:-52565}:5656"
+      - "${API_GATEWAY_PORT:-52556}:5656"
     volumes:
       - ../../prod-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
