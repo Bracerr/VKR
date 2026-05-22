@@ -392,6 +392,7 @@ services:
       AUTH_SERVICE_BASE_URL: http://auth-service:8080
       AUTH_SERVICE_SECRET: ${AUTH_SERVICE_SECRET:-e2e-service-secret}
       RAG_CORPUS_SECRET: ${RAG_CORPUS_SECRET:-${AUTH_SERVICE_SECRET:-e2e-service-secret}}
+      RAG_CORPUS_BASE_URL: ${API_PUBLIC_URL:-http://localhost:5656}
       EVENT_TRANSPORT: ${EVENT_TRANSPORT:-kafka}
       KAFKA_BROKERS: ${KAFKA_BROKERS:-kafka:9092}
       KAFKA_CONSUMER_OFFSET: ${KAFKA_CONSUMER_OFFSET:-earliest}

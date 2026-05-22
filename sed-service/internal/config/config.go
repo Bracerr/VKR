@@ -47,6 +47,7 @@ type Config struct {
 	AuthServiceBaseURL string `mapstructure:"auth_service_base_url"`
 	AuthServiceSecret  string `mapstructure:"auth_service_secret"`
 	RagCorpusSecret    string `mapstructure:"rag_corpus_secret"`
+	RagCorpusBaseURL   string `mapstructure:"rag_corpus_base_url"`
 }
 
 // Load читает конфиг.
@@ -104,6 +105,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("auth_service_base_url", "http://localhost:8080")
 	v.SetDefault("auth_service_secret", "")
 	v.SetDefault("rag_corpus_secret", "")
+	v.SetDefault("rag_corpus_base_url", "http://localhost:5656")
 }
 
 // Validate проверяет обязательные поля.

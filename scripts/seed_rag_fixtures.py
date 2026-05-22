@@ -16,7 +16,7 @@ from typing import Any
 # scripts/lib
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.http_api import ApiError, find_by_code, login_test, pick, req_json  # noqa: E402
-from rag_fixture_payloads import business_payload, rag_content, rag_headers  # noqa: E402
+from rag_fixture_payloads import business_payload, rag_headers  # noqa: E402
 
 
 def req_json_retry(*args, retries: int = 12, **kwargs):
@@ -421,24 +421,12 @@ def parse_rag_ref(title: str) -> tuple[str, int] | None:
     return code, idx
 
 
-def put_rag_content(cfg: Cfg, doc_id: str, content: dict[str, Any]) -> None:
-    req_json_retry(
-        "PUT",
-        f"{cfg.sed_base}/api/v1/internal/rag/documents/{doc_id}/content",
-        headers=rag_headers(cfg.tenant, cfg.rag_secret),
-        body={"rag_content": content},
-        expected=(204,),
-    )
-
-
-def put_document_fixture(
-    cfg: Cfg, doc_id: str, title: str, payload: dict[str, Any], content: dict[str, Any]
-) -> None:
+def put_document_fixture(cfg: Cfg, doc_id: str, title: str, payload: dict[str, Any]) -> None:
     req_json_retry(
         "PUT",
         f"{cfg.sed_base}/api/v1/internal/rag/documents/{doc_id}/fixture",
         headers=rag_headers(cfg.tenant, cfg.rag_secret),
-        body={"title": title, "payload": payload, "rag_content": content},
+        body={"title": title, "payload": payload},
         expected=(204,),
     )
 
@@ -453,8 +441,7 @@ def refresh_existing_rag_docs(cfg: Cfg, st: SeedState, rag_existing: list[dict[s
         slug = TYPE_SLUG.get(code, "")
         title, payload = business_payload(code, slug, idx, st.wh_ids or None)
         doc_id = pick(d, "id")
-        content = rag_content(code, slug, idx, title, payload)
-        put_document_fixture(cfg, doc_id, title, payload, content)
+        put_document_fixture(cfg, doc_id, title, payload)
         full = req_json_retry(
             "GET",
             f"{cfg.sed_base}/api/v1/documents/{doc_id}",
@@ -520,7 +507,6 @@ def create_documents(cfg: Cfg, st: SeedState) -> None:
                 expected=(201,),
             )
             doc_id = pick(doc, "id")
-            put_rag_content(cfg, doc_id, rag_content(code, slug, i, title, payload))
             advance_document(cfg, author_tok, doc_id, target, approver_tok)
             full = req_json_retry(
                 "GET",
@@ -691,32 +677,8 @@ def write_manifests(cfg: Cfg, st: SeedState, report: dict[str, Any]) -> None:
     st.users["_tenant"] = cfg.tenant
     build_manifest_ids(st)
     corpus = fetch_rag_corpus(cfg)
-    corpus_docs = []
-    for d in corpus.get("documents") or []:
-        content = d.get("content") or {}
-        if isinstance(content, str):
-            try:
-                content = json.loads(content)
-            except json.JSONDecodeError:
-                content = {}
-        corpus_docs.append(
-            {
-                "document_id": d.get("document_id"),
-                "type_id": d.get("type_id"),
-                "type_code": d.get("type_code"),
-                "title": d.get("title"),
-                "status": d.get("status"),
-                "author_sub": d.get("author_sub"),
-                "payload": d.get("payload"),
-                "reader_roles": d.get("reader_roles"),
-                "writer_roles": d.get("writer_roles"),
-                "search_text": d.get("search_text") or content.get("search_text", ""),
-                "rag_id": content.get("rag_id"),
-                "content": content,
-            }
-        )
     (out / "corpus_full.json").write_text(
-        json.dumps({"tenant": cfg.tenant, "documents": corpus_docs}, ensure_ascii=False, indent=2),
+        json.dumps(corpus, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     (out / "document_types.json").write_text(
@@ -736,18 +698,8 @@ def write_manifests(cfg: Cfg, st: SeedState, report: dict[str, Any]) -> None:
         ),
         encoding="utf-8",
     )
-    access_from_api = [
-        {
-            "username": (u.get("username") or "").split("@")[0],
-            "login": u.get("login"),
-            "roles": u.get("roles"),
-            "visible_document_ids": u.get("visible_document_ids"),
-            "expected_count": u.get("expected_count"),
-        }
-        for u in corpus.get("users") or []
-    ]
     (out / "access_matrix.json").write_text(
-        json.dumps(access_from_api or report.get("matrix", []), ensure_ascii=False, indent=2),
+        json.dumps(report.get("matrix", []), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     (out / "verification_report.json").write_text(

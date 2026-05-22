@@ -3,51 +3,120 @@ package usecases
 import (
 	"context"
 	"encoding/json"
-	"time"
+	"fmt"
+	"io"
+	"strings"
 
 	"github.com/google/uuid"
 
-	"github.com/industrial-sed/sed-service/internal/clients"
 	"github.com/industrial-sed/sed-service/internal/models"
-	"github.com/industrial-sed/sed-service/internal/repositories"
+	"github.com/industrial-sed/sed-service/internal/ragtext"
 )
 
-// RagCorpusDocument запись для индексации RAG.
-type RagCorpusDocument struct {
-	DocumentID  string          `json:"document_id"`
-	TypeID      string          `json:"type_id"`
-	TypeCode    string          `json:"type_code"`
-	TypeName    string          `json:"type_name"`
-	Number      string          `json:"number"`
-	Title       string          `json:"title"`
-	Status      string          `json:"status"`
-	AuthorSub   string          `json:"author_sub"`
-	Payload     json.RawMessage `json:"payload"`
-	Content     json.RawMessage `json:"content"`
-	SearchText  string          `json:"search_text"`
-	ReaderRoles []string        `json:"reader_roles"`
-	WriterRoles []string        `json:"writer_roles"`
+// RagExportPermissions кто может читать / писать / согласовывать документ этого типа.
+type RagExportPermissions struct {
+	ReadRoles    []string `json:"read_roles"`
+	WriteRoles   []string `json:"write_roles"`
+	ApproveRoles []string `json:"approve_roles"`
+	AdminRoles   []string `json:"admin_roles"`
 }
 
-// RagCorpusUserAccess видимость документов для пользователя.
-type RagCorpusUserAccess struct {
-	Login               string   `json:"login"`
-	Username            string   `json:"username"`
-	KeycloakID          string   `json:"keycloak_id"`
-	Roles               []string `json:"roles"`
-	VisibleDocumentIDs  []string `json:"visible_document_ids"`
-	ExpectedCount       int      `json:"expected_count"`
+// RagExportAttachment ссылка на бинарное вложение (скачивание с тем же X-Service-Secret).
+type RagExportAttachment struct {
+	FileID      string  `json:"file_id"`
+	Name        string  `json:"name"`
+	ContentType *string `json:"content_type,omitempty"`
+	SizeBytes   int64   `json:"size_bytes"`
+	URL         string  `json:"url"`
 }
 
-// RagCorpusResponse выгрузка корпуса для RAG-модуля.
-type RagCorpusResponse struct {
-	Tenant    string                `json:"tenant"`
-	FetchedAt time.Time             `json:"fetched_at"`
-	Documents []RagCorpusDocument   `json:"documents"`
-	Users     []RagCorpusUserAccess `json:"users"`
+// RagExportDocument одна карточка для выгрузки в RAG.
+type RagExportDocument struct {
+	DocumentID  string                `json:"document_id"`
+	Text        string                `json:"text"`
+	Access      RagExportPermissions  `json:"access"`
+	Attachments []RagExportAttachment `json:"attachments"`
 }
 
-// UpdateDocumentFixture обновляет title/payload/rag_content без ACL (только internal seed).
+// RagExportResponse минимальный корпус: только текст, ACL и файлы.
+type RagExportResponse struct {
+	Documents []RagExportDocument `json:"documents"`
+}
+
+var (
+	ragApproveRoles = []string{models.RoleSedApprover}
+	ragAdminRoles   = []string{models.RoleSedAdmin}
+)
+
+// BuildRagExport корпус документов тенанта для внешнего RAG-модуля.
+func (a *App) BuildRagExport(ctx context.Context, tenant, publicBaseURL string) (*RagExportResponse, error) {
+	rows, err := a.Store.ListRagCorpusDocuments(ctx, tenant)
+	if err != nil {
+		return nil, err
+	}
+	fileRows, err := a.Store.ListFilesByTenant(ctx, tenant)
+	if err != nil {
+		return nil, err
+	}
+	filesByDoc := map[string][]RagExportAttachment{}
+	base := strings.TrimRight(publicBaseURL, "/")
+	for _, f := range fileRows {
+		url := fmt.Sprintf("%s/api/v1/internal/rag/documents/%s/files/%s", base, f.DocumentID, f.FileID)
+		filesByDoc[f.DocumentID] = append(filesByDoc[f.DocumentID], RagExportAttachment{
+			FileID: f.FileID, Name: f.OriginalName, ContentType: f.ContentType,
+			SizeBytes: f.SizeBytes, URL: url,
+		})
+	}
+
+	docs := make([]RagExportDocument, 0, len(rows))
+	for _, r := range rows {
+		text := ragtext.FormatDocumentText(r.Title, json.RawMessage(r.Payload))
+		atts := filesByDoc[r.ID]
+		if atts == nil {
+			atts = []RagExportAttachment{}
+		}
+		docs = append(docs, RagExportDocument{
+			DocumentID: r.ID,
+			Text:       text,
+			Access: RagExportPermissions{
+				ReadRoles:    append([]string(nil), r.ReaderRoles...),
+				WriteRoles:   append([]string(nil), r.WriterRoles...),
+				ApproveRoles: append([]string(nil), ragApproveRoles...),
+				AdminRoles:   append([]string(nil), ragAdminRoles...),
+			},
+			Attachments: atts,
+		})
+	}
+	return &RagExportResponse{Documents: docs}, nil
+}
+
+// OpenDocumentFileInternal скачивание вложения без JWT (только internal RAG).
+func (a *App) OpenDocumentFileInternal(ctx context.Context, tenant string, docID, fileID uuid.UUID) (*models.DocumentFile, io.ReadCloser, error) {
+	if a.Minio == nil {
+		return nil, nil, ErrValidation
+	}
+	d, err := a.Store.GetDocument(ctx, nil, tenant, docID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if d == nil {
+		return nil, nil, ErrNotFound
+	}
+	meta, err := a.Store.GetDocumentFile(ctx, nil, tenant, docID, fileID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if meta == nil {
+		return nil, nil, ErrNotFound
+	}
+	rc, err := a.OpenFileStream(ctx, meta.ObjectKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	return meta, rc, nil
+}
+
+// UpdateDocumentFixture обновляет title/payload (rag_content опционален, для seed).
 func (a *App) UpdateDocumentFixture(ctx context.Context, tenant string, docID uuid.UUID, title string, payload, rag json.RawMessage) error {
 	tx, err := a.Store.BeginTx(ctx)
 	if err != nil {
@@ -68,13 +137,15 @@ func (a *App) UpdateDocumentFixture(ctx context.Context, tenant string, docID uu
 	if err := a.Store.UpdateDocument(ctx, tx, d); err != nil {
 		return err
 	}
-	if err := a.Store.UpdateDocumentRagContent(ctx, tx, tenant, docID, rag); err != nil {
-		return err
+	if len(rag) > 0 {
+		if err := a.Store.UpdateDocumentRagContent(ctx, tx, tenant, docID, rag); err != nil {
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }
 
-// SetDocumentRagContent сохраняет rag_content (internal).
+// SetDocumentRagContent сохраняет rag_content (legacy seed).
 func (a *App) SetDocumentRagContent(ctx context.Context, tenant string, docID uuid.UUID, rag json.RawMessage) error {
 	tx, err := a.Store.BeginTx(ctx)
 	if err != nil {
@@ -92,95 +163,4 @@ func (a *App) SetDocumentRagContent(ctx context.Context, tenant string, docID uu
 		return err
 	}
 	return tx.Commit(ctx)
-}
-
-// BuildRagCorpus все документы тенанта + матрица видимости по пользователям.
-func (a *App) BuildRagCorpus(ctx context.Context, tenant string, authUsers *clients.AuthUsersClient) (*RagCorpusResponse, error) {
-	rows, err := a.Store.ListRagCorpusDocuments(ctx, tenant)
-	if err != nil {
-		return nil, err
-	}
-	docs := make([]RagCorpusDocument, 0, len(rows))
-	for _, r := range rows {
-		content := json.RawMessage(r.RagContent)
-		if len(content) == 0 {
-			content = json.RawMessage(`{}`)
-		}
-		searchText := extractSearchText(content)
-		payload := json.RawMessage(r.Payload)
-		if len(payload) == 0 {
-			payload = json.RawMessage(`{}`)
-		}
-		docs = append(docs, RagCorpusDocument{
-			DocumentID: r.ID, TypeID: r.TypeID, TypeCode: r.TypeCode, TypeName: r.TypeName,
-			Number: r.Number, Title: r.Title, Status: r.Status, AuthorSub: r.AuthorSub,
-			Payload: payload, Content: content, SearchText: searchText,
-			ReaderRoles: r.ReaderRoles, WriterRoles: r.WriterRoles,
-		})
-	}
-
-	users, err := authUsers.ListTenantUsers(ctx, tenant)
-	if err != nil {
-		return nil, err
-	}
-	access := buildUserAccess(tenant, users, rows)
-	return &RagCorpusResponse{
-		Tenant: tenant, FetchedAt: time.Now().UTC(),
-		Documents: docs, Users: access,
-	}, nil
-}
-
-func extractSearchText(rag json.RawMessage) string {
-	var m map[string]any
-	if err := json.Unmarshal(rag, &m); err != nil {
-		return ""
-	}
-	if s, ok := m["search_text"].(string); ok {
-		return s
-	}
-	return ""
-}
-
-func buildUserAccess(tenant string, users []clients.AuthTenantUser, rows []repositories.RagCorpusRow) []RagCorpusUserAccess {
-	out := make([]RagCorpusUserAccess, 0, len(users))
-	for _, u := range users {
-		login := u.Username
-		if login != "" && !containsAt(login) {
-			login = u.Username + "@" + tenant
-		}
-		claims := &models.Claims{Sub: u.KeycloakID, RealmRoles: u.Roles}
-		visible := make([]string, 0, len(rows))
-		for _, r := range rows {
-			if docVisibleToUser(claims, r) {
-				visible = append(visible, r.ID)
-			}
-		}
-		out = append(out, RagCorpusUserAccess{
-			Login: login, Username: u.Username, KeycloakID: u.KeycloakID, Roles: u.Roles,
-			VisibleDocumentIDs: visible, ExpectedCount: len(visible),
-		})
-	}
-	return out
-}
-
-func docVisibleToUser(c *models.Claims, r repositories.RagCorpusRow) bool {
-	if c == nil {
-		return false
-	}
-	if models.CanAdminSED(c) {
-		return true
-	}
-	if r.AuthorSub != "" && r.AuthorSub == c.Sub {
-		return true
-	}
-	return models.RolesOverlap(c.RealmRoles, r.ReaderRoles)
-}
-
-func containsAt(s string) bool {
-	for i := 0; i < len(s); i++ {
-		if s[i] == '@' {
-			return true
-		}
-	}
-	return false
 }

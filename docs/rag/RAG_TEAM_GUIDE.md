@@ -2,51 +2,50 @@
 
 Корпус из **50 документов СЭД** (10 типов × 5), **11 учётных записей** (включая сервисный аккаунт) с разным ACL и JSON-manifest для индексации и проверки фильтрации по ролям.
 
-**Тенант:** `ragcorp`  
+  
 **Формат логина:** `{username}@ragcorp`  
-**Общий пароль всех `rag_`*:** значение `RAG_FIXTURES_PASSWORD` на стенде (по умолчанию `RagTest2026!`), дублируется в `test_users.json` → поле `password`.
+**Общий пароль всех** `rag_`***:**  Уточнить у администратора
 
 **Базовый URL стенда (один порт для всего API и Keycloak):**
 
 ```text
-http://<хост>:5656
+http://85.236.191.21:52565/
 ```
-
-Все запросы ниже идут на этот адрес (префиксы `/api/v1/...`, `/realms/...`).
-
-Realm: `industrial-sed`. Client для machine-login: `auth-service` (уточните `client_secret` у администратора).
 
 ---
 
 ## Учётные записи
 
-Пароли и `user_id` — в `docs/rag/generated/test_users.json` (генерируется при `make prod-up` / `rag-seed`).
 
 
-| Username           | Логин                      | Пароль                     | Роли                                  | `GET /api/v1/documents`                                    |
-| ------------------ | -------------------------- | -------------------------- | ------------------------------------- | ---------------------------------------------------------- |
-| `**rag_service**`  | `rag_service@ragcorp`      | `**RagTest2026!**` (общий) | `sed_admin`                           | **200**, **50** — **сервисный аккаунт RAG**, полный доступ |
-| `rag_admin`        | `rag_admin@ragcorp`        | тот же                     | `sed_admin`, `sed_author`             | **200**, **50**                                            |
-| `rag_finance`      | `rag_finance@ragcorp`      | тот же                     | `doc_read_finance`                    | **200**, **15** (PR, PO, SC)                               |
-| `rag_procurement`  | `rag_procurement@ragcorp`  | тот же                     | `doc_read_procurement`                | **200**, **15**                                            |
-| `rag_sales`        | `rag_sales@ragcorp`        | тот же                     | `doc_read_sales`                      | **200**, **10** (SO, SH)                                   |
-| `rag_production`   | `rag_production@ragcorp`   | тот же                     | `doc_read_production`                 | **200**, **10**                                            |
-| `rag_warehouse`    | `rag_warehouse@ragcorp`    | тот же                     | `doc_read_warehouse`                  | **200**, **15**                                            |
-| `rag_author_proc`  | `rag_author_proc@ragcorp`  | тот же                     | `sed_author`, `doc_write_procurement` | см. сценарии ниже                                          |
-| `rag_author_sales` | `rag_author_sales@ragcorp` | тот же                     | `sed_author`, `doc_write_sales`       | см. сценарии ниже                                          |
-| `rag_approver`     | `rag_approver@ragcorp`     | тот же                     | `sed_approver`                        | **200**, **0**; `GET /tasks`                               |
-| `rag_no_access`    | `rag_no_access@ragcorp`    | тот же                     | `sed_viewer`                          | **403**                                                    |
+
+| Username           | Логин                      | Пароль                    | Роли                                  | `GET /api/v1/documents`                                    |
+| ------------------ | -------------------------- | ------------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| `**rag_service**`  | `rag_service@ragcorp`      | Уточнить у администратора | `sed_admin`                           | **200**, **50** — **сервисный аккаунт RAG**, полный доступ |
+| `rag_admin`        | `rag_admin@ragcorp`        | тот же                    | `sed_admin`, `sed_author`             | **200**, **50**                                            |
+| `rag_finance`      | `rag_finance@ragcorp`      | тот же                    | `doc_read_finance`                    | **200**, **15** (PR, PO, SC)                               |
+| `rag_procurement`  | `rag_procurement@ragcorp`  | тот же                    | `doc_read_procurement`                | **200**, **15**                                            |
+| `rag_sales`        | `rag_sales@ragcorp`        | тот же                    | `doc_read_sales`                      | **200**, **10** (SO, SH)                                   |
+| `rag_production`   | `rag_production@ragcorp`   | тот же                    | `doc_read_production`                 | **200**, **10**                                            |
+| `rag_warehouse`    | `rag_warehouse@ragcorp`    | тот же                    | `doc_read_warehouse`                  | **200**, **15**                                            |
+| `rag_author_proc`  | `rag_author_proc@ragcorp`  | тот же                    | `sed_author`, `doc_write_procurement` | см. сценарии ниже                                          |
+| `rag_author_sales` | `rag_author_sales@ragcorp` | тот же                    | `sed_author`, `doc_write_sales`       | см. сценарии ниже                                          |
+| `rag_approver`     | `rag_approver@ragcorp`     | тот же                    | `sed_approver`                        | **200**, **0**; `GET /tasks`                               |
+| `rag_no_access`    | `rag_no_access@ragcorp`    | тот же                    | `sed_viewer`                          | **403**                                                    |
 
 
 ### Сервисный аккаунт `rag_service`
 
-Для индексации и batch-запросов RAG-модуля: роль `**sed_admin`** даёт чтение **всех 50** документов тенанта без фильтра `doc_read_`*. Не используйте его для проверки ACL по ролям — для этого остаются `rag_finance`, `rag_sales` и т.д.
+Для индексации и batch-запросов RAG-модуля: роль `**sed_admin`** даёт чтение **всех 50** документов тенанта без фильтра `doc_read_`*. 
+
+### Тестовая ручка для обхода авторизации.
 
 ```bash
 curl -s -X POST "$API_BASE/api/v1/internal/test/login" \
-  -H "X-Test-Secret: e2e-test-secret" -H "Content-Type: application/json" \
-  -d '{"username":"rag_service@ragcorp","password":"RagTest2026!"}'
+  -H "X-Test-Secret: SECRET" -H "Content-Type: application/json" \
+  -d '{"username":"rag_service@ragcorp","password":"PASSWORD"}'
 ```
+Secret & Password уточнить у администратора
 
 ### Какие типы документов видит роль
 
@@ -64,61 +63,82 @@ curl -s -X POST "$API_BASE/api/v1/internal/test/login" \
 | `RAG_WH_CONSUME`             | `RAG-WC-xxx`     | warehouse                 |
 | `RAG_WH_RECEIPT`             | `RAG-WT-xxx`     | warehouse                 |
 
-
-### Эталонные ID документов (`manifest_ids.json`)
-
-
-| Назначение                            | UUID                                   | `rag_id`                    |
-| ------------------------------------- | -------------------------------------- | --------------------------- |
-| Заявка на закупку                     | `e2cdbb12-099c-4a5b-af60-2fc9c05f57b1` | `RAG-PR-001`                |
-| Заказ на отгрузку                     | `0f944287-f590-45e5-a8f3-3b1c542cdc3e` | `RAG-SO-001`                |
-| Договор поставщика                    | `2f543adf-46c0-4499-8335-16ec889c0aa5` | `RAG-SC-001`                |
-| Черновик PR (автор `rag_author_proc`) | `b4518951-24e2-4efe-81d5-49ceee9250f0` | —                           |
-| PR на согласовании                    | `4ba793a8-5adb-4634-b975-66910c950316` | —                           |
-| `type_id` для создания PR             | `9a2e4c2b-8f5d-480e-a8fc-dcc120c236d2` | `PURCHASE_REQUEST_APPROVAL` |
-
-
 ---
 
 ## Файлы manifest
 
 
-| Файл                 | Назначение                                                      |
-| -------------------- | --------------------------------------------------------------- |
-| `corpus_full.json`   | Снимок internal corpus API: `search_text`, `content`, бизнес-`payload` |
-| `access_matrix.json` | Список `document_id`, доступных каждому пользователю            |
-| `manifest_ids.json`  | UUID документов и типов для примеров запросов                   |
-| `test_users.json`    | Логины, пароли, роли                                            |
+| Файл                 | Назначение                                                             |
+| -------------------- | ---------------------------------------------------------------------- |
+| `corpus_full.json`   | Снимок `GET /internal/rag/corpus`: `text`, `access`, `attachments` |
+| `access_matrix.json` | Список `document_id`, доступных каждому пользователю                   |
+| `manifest_ids.json`  | UUID документов и типов для примеров запросов                          |
+| `test_users.json`    | Логины, пароли, роли                                                   |
 
 
-### Индексация (рекомендуется — internal API)
+### Индексация
 
-Публичный `GET /api/v1/documents` отдаёт **только бизнес-карточку** (`title`, `payload` с заказами, поставщиками, строками и т.д.) — **без** `search_text`, `rag_id`, `keywords`.
+Публичный `GET /api/v1/documents` отдаёт **только бизнес-карточку** (`title`, `payload` с заказами, поставщиками, строками и т.д.)
 
 Корпус для RAG и матрица видимости — **закрытая сервисная ручка**:
 
 ```http
 GET http://<хост>:52565/api/v1/internal/rag/corpus
-X-Service-Secret: e2e-test-secret
+X-Service-Secret: e2e-service-secret
 X-Tenant-Id: ragcorp
 ```
 
-**Ответ 200:**
+> **Не путать с test login:** `X-Test-Secret` (`AUTH_TEST_SECRET`, обычно `e2e-test-secret`) — только для `/internal/test/login`.  
+> Для corpus нужен `**X-Service-Secret`** = `RAG_CORPUS_SECRET` или `**AUTH_SERVICE_SECRET**` (на прод-стенде `**e2e-service-secret**`).  
+> `**Authorization: Bearer` не нужен** — достаточно двух заголовков выше.
 
-- `documents[]` — все документы тенанта: `search_text`, `content` (поля индексации), `payload` (бизнес), `reader_roles`, `writer_roles`
-- `users[]` — `login`, `roles`, `visible_document_ids`, `expected_count`
+**Ответ 200** — только массив `documents`, без `users`, `search_text`, `payload`:
+
+```json
+{
+  "documents": [
+    {
+      "document_id": "uuid",
+      "text": "Заявка на закупку RAG-PR-001 — …\n\nПодразделение: …\nОбоснование: …\nПозиции:\n  1) …",
+      "access": {
+        "read_roles": ["doc_read_procurement", "doc_read_finance"],
+        "write_roles": ["doc_write_procurement"],
+        "approve_roles": ["sed_approver"],
+        "admin_roles": ["sed_admin"]
+      },
+      "attachments": [
+        {
+          "file_id": "uuid",
+          "name": "scan.pdf",
+          "content_type": "application/pdf",
+          "size_bytes": 12345,
+          "url": "http://<хост>:52565/api/v1/internal/rag/documents/<doc_id>/files/<file_id>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+| Поле | Назначение |
+|------|------------|
+| `text` | Всё, что «написано» в карточке (заголовок + поля payload текстом) — **это и индексирует RAG** |
+| `access.read_roles` | Кто может **читать** (realm-роли + логика `sed_admin` / автор в приложении) |
+| `access.write_roles` | Кто может **создавать** документы этого типа |
+| `access.approve_roles` | Кто может **согласовывать** (`sed_approver`) |
+| `access.admin_roles` | Полный доступ (`sed_admin`) |
+| `attachments[].url` | Скачать **бинарник** тем же `X-Service-Secret` + `X-Tenant-Id` (GET по `url`) |
 
 ```bash
 curl -s "http://<хост>:52565/api/v1/internal/rag/corpus" \
-  -H "X-Service-Secret: e2e-test-secret" \
-  -H "X-Tenant-Id: ragcorp" | jq '{docs: (.documents|length), users: (.users|length)}'
+  -H "X-Service-Secret: e2e-service-secret" \
+  -H "X-Tenant-Id: ragcorp" | jq '.documents | length'
 ```
 
-Секрет: `RAG_CORPUS_SECRET` или `AUTH_SERVICE_SECRET` из `.env` стенда.
+Секрет: `RAG_CORPUS_SECRET` или `AUTH_SERVICE_SECRET` (не `AUTH_TEST_SECRET`).  
+База URL в ссылках на файлы: `RAG_CORPUS_BASE_URL` / `API_PUBLIC_URL` на стенде.
 
-Офлайн-копии после `rag-seed`: `corpus_full.json`, `access_matrix.json` (те же данные, что из corpus API).
-
-**Per-user retrieval:** фильтровать по `users[].visible_document_ids` или по `GET /api/v1/documents` под JWT (без полного текста для индекса).
+Публичный `GET /api/v1/documents` — только для UI/проверок ACL; **корпус для RAG — только `/internal/rag/corpus`**.
 
 ---
 
@@ -149,7 +169,9 @@ Content-Type: application/json
 {"username":"rag_service@ragcorp","password":"RagTest2026!"}
 ```
 
-> **Важно для Postman:** заголовок `X-Test-Secret` должен **точно** совпадать с `AUTH_TEST_SECRET` в `.env` на сервере (по умолчанию **`e2e-test-secret`**, не `dev-test-secret`). При неверном секрете API отвечает `401` с текстом «неверные учётные данные» — так же, как при неверном пароле.
+> **Важно для Postman (test login):** `X-Test-Secret` = `AUTH_TEST_SECRET` (часто `e2e-test-secret`).  
+> **Corpus API:** `X-Service-Secret` = `AUTH_SERVICE_SECRET` (на стенде `85.236.191.21` — `**e2e-service-secret`**).  
+> При неверном секрете в обоих случаях приходит `401` «неверные учётные данные».
 
 **Ответ 200:** `access_token`. Далее:
 

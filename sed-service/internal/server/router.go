@@ -9,7 +9,6 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"github.com/industrial-sed/sed-service/internal/clients"
 	"github.com/industrial-sed/sed-service/internal/config"
 	"github.com/industrial-sed/sed-service/internal/handlers"
 	"github.com/industrial-sed/sed-service/internal/jwtverify"
@@ -56,10 +55,11 @@ func NewRouter(d Deps) *gin.Engine {
 	}
 	var ragH *handlers.RagInternalHandler
 	if ragSecret != "" {
-		ragH = &handlers.RagInternalHandler{
-			App: d.App,
-			AuthUsers: clients.NewAuthUsersClient(d.Cfg.AuthServiceBaseURL, d.Cfg.AuthServiceSecret),
+		base := d.Cfg.RagCorpusBaseURL
+		if base == "" {
+			base = "http://localhost:5656"
 		}
+		ragH = &handlers.RagInternalHandler{App: d.App, PublicBaseURL: base}
 	}
 
 	r.GET("/health", handlers.Health)
@@ -121,6 +121,7 @@ func NewRouter(d Deps) *gin.Engine {
 		internal := r.Group("/api/v1/internal/rag")
 		internal.Use(middleware.ServiceSecret(ragSecret))
 		internal.GET("/corpus", ragH.GetCorpus)
+		internal.GET("/documents/:id/files/:file_id", ragH.DownloadFile)
 		internal.PUT("/documents/:id/fixture", ragH.UpdateDocumentFixture)
 		internal.PUT("/documents/:id/content", ragH.SetDocumentRagContent)
 	}

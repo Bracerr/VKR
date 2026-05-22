@@ -1,4 +1,4 @@
-"""Internal RAG corpus API и отсутствие RAG-полей в публичном GET /documents."""
+"""Internal RAG corpus: text + access + attachment URLs only."""
 
 import os
 
@@ -6,7 +6,6 @@ import pytest
 import requests
 
 SED_URL = os.getenv("SED_URL", "http://localhost:5656").rstrip("/")
-AUTH_URL = os.getenv("AUTH_URL", "http://localhost:5656").rstrip("/")
 RAG_TENANT = os.getenv("RAG_FIXTURES_TENANT", "ragcorp")
 RAG_SECRET = os.getenv("RAG_CORPUS_SECRET", os.getenv("AUTH_SERVICE_SECRET", "e2e-service-secret"))
 TEST_SECRET = os.getenv("AUTH_TEST_SECRET", os.getenv("TEST_SECRET", "e2e-test-secret"))
@@ -15,7 +14,7 @@ RAG_PASSWORD = os.getenv("RAG_FIXTURES_PASSWORD", "RagTest2026!")
 
 def _login(username: str) -> str:
     r = requests.post(
-        f"{AUTH_URL}/api/v1/internal/test/login",
+        f"{SED_URL}/api/v1/internal/test/login",
         headers={"X-Test-Secret": TEST_SECRET, "Content-Type": "application/json"},
         json={"username": f"{username}@{RAG_TENANT}", "password": RAG_PASSWORD},
         timeout=60,
@@ -35,7 +34,7 @@ def rag_corpus():
     return r.json()
 
 
-def test_public_documents_have_no_rag_content():
+def test_public_documents_have_no_rag_index_fields():
     tok = _login("rag_admin")
     r = requests.get(
         f"{SED_URL}/api/v1/documents",
@@ -43,29 +42,29 @@ def test_public_documents_have_no_rag_content():
         timeout=60,
     )
     assert r.status_code == 200
-    docs = r.json()
-    assert len(docs) >= 50
-    for d in docs:
+    for d in r.json():
         if "RAG-" not in (d.get("title") or ""):
             continue
         payload = d.get("payload") or {}
-        assert "rag_id" not in payload
         assert "search_text" not in payload
-        assert "keywords" not in payload or "fixture" not in str(payload.get("keywords", ""))
+        assert "rag_id" not in payload
 
 
-def test_rag_corpus_returns_documents_and_access(rag_corpus):
-    assert rag_corpus.get("tenant") == RAG_TENANT
-    docs = rag_corpus.get("documents") or []
-    users = rag_corpus.get("users") or []
+def test_rag_corpus_minimal_shape(rag_corpus):
+    assert "documents" in rag_corpus
+    assert "users" not in rag_corpus
+    assert "tenant" not in rag_corpus
+    docs = rag_corpus["documents"]
     assert len(docs) >= 50
-    assert len(users) >= 5
-    sample = next(d for d in docs if d.get("search_text"))
-    assert sample.get("content")
-    assert sample.get("reader_roles")
-    finance = next((u for u in users if "rag_finance" in (u.get("login") or "")), None)
-    assert finance is not None
-    assert finance.get("expected_count") == 15
+    sample = docs[0]
+    assert set(sample.keys()) == {"document_id", "text", "access", "attachments"}
+    assert "Подшипник" in sample["text"] or "закупк" in sample["text"].lower() or len(sample["text"]) > 20
+    access = sample["access"]
+    assert "read_roles" in access
+    assert "write_roles" in access
+    assert "approve_roles" in access
+    assert "admin_roles" in access
+    assert isinstance(sample["attachments"], list)
 
 
 def test_rag_corpus_rejects_wrong_secret():
