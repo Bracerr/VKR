@@ -1,9 +1,10 @@
 # RAG — руководство для команды
 
-Корпус из **50 документов СЭД** (10 типов × 5), **10 учётных записей** с разным ACL и JSON-manifest для индексации и проверки фильтрации по ролям.
+Корпус из **50 документов СЭД** (10 типов × 5), **11 учётных записей** (включая сервисный аккаунт) с разным ACL и JSON-manifest для индексации и проверки фильтрации по ролям.
 
 **Тенант:** `ragcorp`  
-**Формат логина:** `{username}@ragcorp`
+**Формат логина:** `{username}@ragcorp`  
+**Общий пароль всех `rag_*`:** значение `RAG_FIXTURES_PASSWORD` на стенде (по умолчанию `RagTest2026!`), дублируется в `test_users.json` → поле `password`.
 
 **Базовый URL стенда (один порт для всего API и Keycloak):**
 
@@ -19,20 +20,31 @@ Realm: `industrial-sed`. Client для machine-login: `auth-service` (уточн
 
 ## Учётные записи
 
-Пароли и `user_id` — в файле `docs/rag/generated/test_users.json` (поставляется вместе с manifest).
+Пароли и `user_id` — в `docs/rag/generated/test_users.json` (генерируется при `make prod-up` / `rag-seed`).
 
 | Username | Логин | Пароль | Роли | `GET /api/v1/documents` |
 |----------|-------|--------|------|-------------------------|
-| `rag_admin` | `rag_admin@ragcorp` | `jHyZyS5nQZoFq1ja` | `sed_admin`, `sed_author` | **200**, **50** записей |
-| `rag_finance` | `rag_finance@ragcorp` | `CM3L5KExDQQ9oxqQ` | `doc_read_finance` | **200**, **15** (PR, PO, SC) |
-| `rag_procurement` | `rag_procurement@ragcorp` | `YJfMYLStdw%Qg28#` | `doc_read_procurement` | **200**, **15** (PR, PO, SC) |
-| `rag_sales` | `rag_sales@ragcorp` | `kDBcCHSx7o3ueAob` | `doc_read_sales` | **200**, **10** (SO, SH) |
-| `rag_production` | `rag_production@ragcorp` | `fI9Eg$QPw75DN7EE` | `doc_read_production` | **200**, **10** (BOM, RT) |
-| `rag_warehouse` | `rag_warehouse@ragcorp` | `V6m8QzyLk1OentGE` | `doc_read_warehouse` | **200**, **15** (WR, WC, WT) |
-| `rag_author_proc` | `rag_author_proc@ragcorp` | `g2XlmkXkvUxYRGgL` | `sed_author`, `doc_write_procurement` | см. сценарии ниже |
-| `rag_author_sales` | `rag_author_sales@ragcorp` | `eBDVl1LMcU644ggL` | `sed_author`, `doc_write_sales` | см. сценарии ниже |
-| `rag_approver` | `rag_approver@ragcorp` | `!k3lboMwVd3qMnGR` | `sed_approver` | **200**, **0**; задачи — `GET /tasks` |
-| `rag_no_access` | `rag_no_access@ragcorp` | `#NZC!B7Iu$0o%8dv` | `sed_viewer` | **403** |
+| **`rag_service`** | `rag_service@ragcorp` | **`RagTest2026!`** (общий) | `sed_admin` | **200**, **50** — **сервисный аккаунт RAG**, полный доступ |
+| `rag_admin` | `rag_admin@ragcorp` | тот же | `sed_admin`, `sed_author` | **200**, **50** |
+| `rag_finance` | `rag_finance@ragcorp` | тот же | `doc_read_finance` | **200**, **15** (PR, PO, SC) |
+| `rag_procurement` | `rag_procurement@ragcorp` | тот же | `doc_read_procurement` | **200**, **15** |
+| `rag_sales` | `rag_sales@ragcorp` | тот же | `doc_read_sales` | **200**, **10** (SO, SH) |
+| `rag_production` | `rag_production@ragcorp` | тот же | `doc_read_production` | **200**, **10** |
+| `rag_warehouse` | `rag_warehouse@ragcorp` | тот же | `doc_read_warehouse` | **200**, **15** |
+| `rag_author_proc` | `rag_author_proc@ragcorp` | тот же | `sed_author`, `doc_write_procurement` | см. сценарии ниже |
+| `rag_author_sales` | `rag_author_sales@ragcorp` | тот же | `sed_author`, `doc_write_sales` | см. сценарии ниже |
+| `rag_approver` | `rag_approver@ragcorp` | тот же | `sed_approver` | **200**, **0**; `GET /tasks` |
+| `rag_no_access` | `rag_no_access@ragcorp` | тот же | `sed_viewer` | **403** |
+
+### Сервисный аккаунт `rag_service`
+
+Для индексации и batch-запросов RAG-модуля: роль **`sed_admin`** даёт чтение **всех 50** документов тенанта без фильтра `doc_read_*`. Не используйте его для проверки ACL по ролям — для этого остаются `rag_finance`, `rag_sales` и т.д.
+
+```bash
+curl -s -X POST "$API_BASE/api/v1/internal/test/login" \
+  -H "X-Test-Secret: e2e-test-secret" -H "Content-Type: application/json" \
+  -d '{"username":"rag_service@ragcorp","password":"RagTest2026!"}'
+```
 
 ### Какие типы документов видит роль
 

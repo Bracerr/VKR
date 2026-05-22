@@ -82,6 +82,7 @@ func NewRouter(d Deps) *gin.Engine {
 	users.POST("", d.UserUC.Create)
 	users.GET("", d.UserUC.List)
 	users.PUT("/:id/roles", d.UserUC.UpdateRoles)
+	users.PUT("/:id/password", d.UserUC.SetPassword)
 	users.DELETE("/:id", d.UserUC.Delete)
 
 	internal := v1.Group("/internal")

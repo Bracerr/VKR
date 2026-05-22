@@ -35,7 +35,7 @@ func (h *UserHandler) Create(c *gin.Context) {
 		return
 	}
 	actor := middleware.Claims(c)
-	id, temp, err := h.uc.CreateUser(c.Request.Context(), actor, req.Username, req.Email, req.Role)
+	id, temp, err := h.uc.CreateUser(c.Request.Context(), actor, req.Username, req.Email, req.Role, req.Password)
 	if err != nil {
 		if RespondUsecaseError(c, err) {
 			return
@@ -85,6 +85,31 @@ func (h *UserHandler) UpdateRoles(c *gin.Context) {
 		return
 	}
 	if err := h.uc.UpdateUserRoles(c.Request.Context(), middleware.Claims(c), c.Param("id"), req.Roles); err != nil {
+		if RespondUsecaseError(c, err) {
+			return
+		}
+		RespondError(c, http.StatusBadRequest, err.Error(), http.StatusBadRequest)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// SetPassword задаёт пароль пользователю.
+// @Summary Задать пароль пользователя (ent_admin)
+// @Tags users
+// @Accept json
+// @Param id path string true "Keycloak user id"
+// @Param body body SetPasswordRequest true "пароль"
+// @Success 204
+// @Router /api/v1/users/{id}/password [put]
+// @Security BearerAuth
+func (h *UserHandler) SetPassword(c *gin.Context) {
+	var req SetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		RespondError(c, http.StatusUnprocessableEntity, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	if err := h.uc.SetUserPassword(c.Request.Context(), middleware.Claims(c), c.Param("id"), req.Password); err != nil {
 		if RespondUsecaseError(c, err) {
 			return
 		}

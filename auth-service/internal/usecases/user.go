@@ -30,8 +30,8 @@ func NewUserUC(kc ports.KeycloakClient, tenants TenantRepository, users UserCach
 	return &UserUC{kc: kc, repo: tenants, users: users, adm: newAdminTokenSource(kc), notif: n}
 }
 
-// CreateUser создаёт пользователя username@tenant с временным паролем.
-func (u *UserUC) CreateUser(ctx context.Context, actor *models.Claims, username, email, role string) (keycloakID, tempPassword string, err error) {
+// CreateUser создаёт пользователя username@tenant. Если password непустой — задаёт его, иначе случайный пароль.
+func (u *UserUC) CreateUser(ctx context.Context, actor *models.Claims, username, email, role, password string) (keycloakID, tempPassword string, err error) {
 	if actor == nil || !actor.HasRole(keycloak.RoleEntAdmin) {
 		return "", "", ErrForbidden
 	}
@@ -56,7 +56,15 @@ func (u *UserUC) CreateUser(ctx context.Context, actor *models.Claims, username,
 	} else if n > 0 {
 		return "", "", ErrConflict
 	}
-	tempPassword = randomPassword(16)
+	password = strings.TrimSpace(password)
+	if password != "" {
+		if len(password) < 8 {
+			return "", "", fmt.Errorf("%w: password min 8 chars", ErrValidation)
+		}
+		tempPassword = password
+	} else {
+		tempPassword = randomPassword(16)
+	}
 	enabled := true
 	attrs := map[string][]string{"tenant_id": {tenant}}
 	uRep := gocloak.User{
@@ -113,6 +121,25 @@ func (u *UserUC) CreateUser(ctx context.Context, actor *models.Claims, username,
 		KeycloakUserID:    uid,
 	})
 	return uid, tempPassword, nil
+}
+
+// SetUserPassword задаёт пароль пользователю тенанта (ent_admin).
+func (u *UserUC) SetUserPassword(ctx context.Context, actor *models.Claims, userID, password string) error {
+	if actor == nil || !actor.HasRole(keycloak.RoleEntAdmin) {
+		return ErrForbidden
+	}
+	password = strings.TrimSpace(password)
+	if len(password) < 8 {
+		return fmt.Errorf("%w: password min 8 chars", ErrValidation)
+	}
+	token, err := u.adm.Token(ctx)
+	if err != nil {
+		return err
+	}
+	if err := u.ensureUserInTenant(ctx, token, actor.TenantID, userID); err != nil {
+		return err
+	}
+	return u.kc.SetUserPassword(ctx, token, userID, password, false)
 }
 
 func allowedRole(r string) bool {

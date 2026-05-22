@@ -11,6 +11,13 @@ type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,min=1,max=64"`
 	Email    string `json:"email" binding:"required,email"`
 	Role     string `json:"role" binding:"required"`
+	// Password опционально: если задан — постоянный пароль вместо случайного временного.
+	Password string `json:"password" binding:"omitempty,min=8,max=128"`
+}
+
+// SetPasswordRequest тело PUT /users/:id/password.
+type SetPasswordRequest struct {
+	Password string `json:"password" binding:"required,min=8,max=128"`
 }
 
 // UpdateRolesRequest тело PUT /users/:id/roles.

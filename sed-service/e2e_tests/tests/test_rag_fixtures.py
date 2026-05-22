@@ -61,6 +61,26 @@ def test_admin_sees_50_documents(rag_users, manifest):
     assert ids == set(manifest["all_document_ids"])
 
 
+def test_rag_service_sees_50_documents(rag_users, manifest):
+    ids = _ids(rag_users["rag_service"]["headers"])
+    assert len(ids) == 50
+    assert ids == set(manifest["all_document_ids"])
+
+
+def test_rag_users_fixed_password(rag_users):
+    expected = os.environ.get("RAG_FIXTURES_PASSWORD", "RagTest2026!")
+    for name, data in rag_users.items():
+        if not name.startswith("rag_"):
+            continue
+        r = requests.post(
+            f"{AUTH_URL}/api/v1/internal/test/login",
+            headers={"X-Test-Secret": TEST_SECRET, "Content-Type": "application/json"},
+            json={"username": data["login"], "password": expected},
+            timeout=60,
+        )
+        assert r.status_code == 200, f"{name} login with RAG_FIXTURES_PASSWORD: {r.text}"
+
+
 def test_finance_scope(rag_users, manifest):
     ids = _ids(rag_users["rag_finance"]["headers"])
     assert len(ids) == 15

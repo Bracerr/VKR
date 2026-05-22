@@ -87,6 +87,8 @@ PRODUCTION_TYPES = {"BOM_APPROVAL", "ROUTING_APPROVAL"}
 WAREHOUSE_TYPES = {"RAG_WH_RESERVE", "RAG_WH_CONSUME", "RAG_WH_RECEIPT"}
 
 RAG_USERS: list[tuple[str, list[str]]] = [
+    # Сервисный аккаунт RAG: полный доступ ко всем документам тенанта (роль sed_admin).
+    ("rag_service", ["sed_admin"]),
     ("rag_admin", ["sed_admin", "sed_author"]),
     ("rag_finance", ["doc_read_finance"]),
     ("rag_procurement", ["doc_read_procurement"]),
@@ -208,12 +210,22 @@ def ensure_tenant(cfg: Cfg, super_tok: str) -> str:
         return login_test(cfg.auth_base, cfg.test_secret, ent_login, cfg.password)
 
 
+def sync_user_password(cfg: Cfg, ent_tok: str, uid: str) -> None:
+    req_json_retry(
+        "PUT",
+        f"{cfg.auth_base}/api/v1/users/{uid}/password",
+        token=ent_tok,
+        body={"password": cfg.password},
+        expected=(204,),
+    )
+
+
 def ensure_rag_users(cfg: Cfg, ent_tok: str, st: SeedState) -> None:
     for username, roles in RAG_USERS:
         uname = f"{username}@{cfg.tenant}"
         users = req_json_retry("GET", f"{cfg.auth_base}/api/v1/users", token=ent_tok, expected=(200,)) or []
         existing = next(
-            (u for u in users if (u.get("username") or "").startswith(username)),
+            (u for u in users if (u.get("username") or "").split("@")[0] == username),
             None,
         )
         user_pw = cfg.password
@@ -225,15 +237,15 @@ def ensure_rag_users(cfg: Cfg, ent_tok: str, st: SeedState) -> None:
                     "POST",
                     f"{cfg.auth_base}/api/v1/users",
                     token=ent_tok,
-                body={
-                    "username": username,
-                    "email": f"{username}-{cfg.tenant}@test.local",
-                    "role": roles[0],
-                },
+                    body={
+                        "username": username,
+                        "email": f"{username}-{cfg.tenant}@test.local",
+                        "role": roles[0],
+                        "password": cfg.password,
+                    },
                     expected=(201,),
                 )
                 uid = r.get("id") or r.get("keycloak_id")
-                user_pw = r["temporary_password"]
             except ApiError as e:
                 if "409" not in str(e):
                     raise
@@ -245,6 +257,7 @@ def ensure_rag_users(cfg: Cfg, ent_tok: str, st: SeedState) -> None:
                 if not existing:
                     raise
                 uid = existing.get("keycloak_id") or pick(existing, "id")
+        sync_user_password(cfg, ent_tok, uid)
         req_json_retry(
             "PUT",
             f"{cfg.auth_base}/api/v1/users/{uid}/roles",
@@ -594,6 +607,7 @@ def compute_access_matrix(st: SeedState) -> list[dict[str, Any]]:
 
 
 EXPECTED_COUNTS = {
+    "rag_service": 50,
     "rag_admin": 50,
     "rag_finance": 15,
     "rag_procurement": 15,
