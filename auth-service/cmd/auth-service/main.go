@@ -123,6 +123,19 @@ func main() {
 	tuc := usecases.NewTenantUC(kc, tenantRepo)
 	uuc := usecases.NewUserUC(kc, tenantRepo, userRepo, n)
 
+	if cfg.BootstrapDemoUser {
+		if cfg.BootstrapDemoUserPassword == "" {
+			log.Warn("bootstrap_demo_user_skipped", "reason", "empty bootstrap_demo_user_password")
+		} else if err := uuc.BootstrapDemoPowerUser(ctx, cfg.BootstrapDemoTenant, cfg.BootstrapDemoUsername, cfg.BootstrapDemoUserPassword); err != nil {
+			log.Warn("bootstrap_demo_user", "error", err.Error())
+		} else {
+			log.Info("bootstrap_demo_user_ok",
+				"user", cfg.BootstrapDemoUsername+"@"+cfg.BootstrapDemoTenant,
+				"tenant", cfg.BootstrapDemoTenant,
+			)
+		}
+	}
+
 	// JWKS запрашиваем с URL, доступного из контейнера сервиса (внутренний Docker hostname).
 	parser, err := jwtverify.NewParser(ctx, cfg.KeycloakURL, cfg.KeycloakRealm, cfg.KeycloakClientID)
 	if err != nil {

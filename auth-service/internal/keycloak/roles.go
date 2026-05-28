@@ -51,6 +51,18 @@ const (
 	RoleSalesViewer   = "sales_viewer"
 )
 
+// TenantPowerRoles — все realm-роли для полного доступа к API и документам тенанта (без super_admin).
+func TenantPowerRoles() []string {
+	out := make([]string, 0, len(RealmRoles))
+	for _, r := range RealmRoles {
+		if r == RoleSuperAdmin {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
 // RealmRoles список базовых ролей для bootstrap.
 var RealmRoles = []string{
 	RoleSuperAdmin,

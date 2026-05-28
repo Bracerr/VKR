@@ -42,6 +42,11 @@ type Config struct {
 	BootstrapSuperAdminUsername string `mapstructure:"bootstrap_superadmin_username"`
 	BootstrapSuperAdminPassword string `mapstructure:"bootstrap_superadmin_password"`
 
+	BootstrapDemoUser         bool   `mapstructure:"bootstrap_demo_user"`
+	BootstrapDemoUsername     string `mapstructure:"bootstrap_demo_username"`
+	BootstrapDemoTenant       string `mapstructure:"bootstrap_demo_tenant"`
+	BootstrapDemoUserPassword string `mapstructure:"bootstrap_demo_user_password"`
+
 	NotifierType         string   `mapstructure:"notifier_type"`
 	KafkaBrokers         []string `mapstructure:"kafka_brokers"`
 	KafkaTopicUserEvents string   `mapstructure:"kafka_topic_user_events"`
@@ -115,6 +120,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("api_public_url", "http://localhost:8080")
 	v.SetDefault("enable_test_endpoints", false)
 	v.SetDefault("bootstrap_superadmin_password", "")
+	v.SetDefault("bootstrap_demo_user", false)
+	v.SetDefault("bootstrap_demo_username", "vkr_demo")
+	v.SetDefault("bootstrap_demo_tenant", "ragcorp")
+	v.SetDefault("bootstrap_demo_user_password", "")
 	v.SetDefault("notifier_type", "mock")
 	v.SetDefault("kafka_topic_user_events", "vkr.auth.user.created")
 	v.SetDefault("auth_login_rate_limit", 30)

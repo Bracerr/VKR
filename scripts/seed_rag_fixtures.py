@@ -88,7 +88,48 @@ SALES_TYPES = {"SALES_ORDER_APPROVAL", "SHIPMENT_APPROVAL"}
 PRODUCTION_TYPES = {"BOM_APPROVAL", "ROUTING_APPROVAL"}
 WAREHOUSE_TYPES = {"RAG_WH_RESERVE", "RAG_WH_CONSUME", "RAG_WH_RECEIPT"}
 
+# Все realm-роли кроме super_admin — auth-service/internal/keycloak/roles.go (TenantPowerRoles).
+POWER_USER_ROLES: list[str] = [
+    "ent_admin",
+    "approver",
+    "engineer",
+    "viewer",
+    "warehouse_admin",
+    "storekeeper",
+    "warehouse_viewer",
+    "sed_admin",
+    "sed_author",
+    "sed_approver",
+    "sed_viewer",
+    "doc_read_procurement",
+    "doc_read_sales",
+    "doc_read_production",
+    "doc_read_warehouse",
+    "doc_read_finance",
+    "doc_write_procurement",
+    "doc_write_sales",
+    "doc_write_production",
+    "prod_admin",
+    "prod_technologist",
+    "prod_planner",
+    "prod_master",
+    "prod_worker",
+    "prod_qc",
+    "prod_viewer",
+    "proc_admin",
+    "proc_buyer",
+    "proc_approver",
+    "proc_viewer",
+    "sales_admin",
+    "sales_manager",
+    "sales_approver",
+    "sales_viewer",
+]
+
+DEMO_USER = "vkr_demo"
+
 RAG_USERS: list[tuple[str, list[str]]] = [
+    (DEMO_USER, POWER_USER_ROLES),
     # Сервисный аккаунт RAG: полный доступ ко всем документам тенанта (роль sed_admin).
     ("rag_service", ["sed_admin"]),
     ("rag_admin", ["sed_admin", "sed_author"]),

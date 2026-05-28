@@ -67,6 +67,12 @@ def test_rag_service_sees_50_documents(rag_users, manifest):
     assert ids == set(manifest["all_document_ids"])
 
 
+def test_vkr_demo_sees_50_documents(rag_users, manifest):
+    ids = _ids(rag_users["vkr_demo"]["headers"])
+    assert len(ids) == 50
+    assert ids == set(manifest["all_document_ids"])
+
+
 def test_rag_users_fixed_password(rag_users):
     expected = os.environ.get("RAG_FIXTURES_PASSWORD", "RagTest2026!")
     for name, data in rag_users.items():

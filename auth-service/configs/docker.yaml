@@ -18,6 +18,11 @@ enable_test_endpoints: true
 bootstrap_superadmin: true
 bootstrap_superadmin_username: "superadmin"
 
+bootstrap_demo_user: true
+bootstrap_demo_username: "vkr_demo"
+bootstrap_demo_tenant: "ragcorp"
+# Пароль задаётся через BOOTSTRAP_DEMO_USER_PASSWORD в compose (.env).
+
 notifier_type: "kafka"
 kafka_brokers: ["kafka:9092"]
 kafka_topic_user_events: "vkr.auth.user.created"

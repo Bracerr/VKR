@@ -19,6 +19,11 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       # Создание пользователей не должно падать из‑за Kafka (иначе rag-seed: 500).
       NOTIFIER_TYPE: ${NOTIFIER_TYPE:-mock}
+      # Демо-пользователь с полным набором ролей тенанта (после появления ragcorp в БД).
+      BOOTSTRAP_DEMO_USER: "true"
+      BOOTSTRAP_DEMO_USERNAME: vkr_demo
+      BOOTSTRAP_DEMO_TENANT: ${RAG_FIXTURES_TENANT:-ragcorp}
+      BOOTSTRAP_DEMO_USER_PASSWORD: ${RAG_FIXTURES_PASSWORD:-RagTest2026!}
 
   gateway:
     image: nginx:1.26-alpine
