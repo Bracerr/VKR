@@ -1,0 +1,396 @@
+basePath: /
+host: localhost:8093
+info:
+  contact: {}
+  description: 'Закупки: PR→PO→приемка в склад + согласование в СЭД'
+  title: Procurement Service API
+  version: "1.0"
+paths:
+  /api/v1/internal/sed-events:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Секрет сервиса
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+      summary: События от СЭД (internal)
+      tags:
+      - internal
+  /api/v1/purchase-orders:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список заказов поставщику
+      tags:
+      - purchase-orders
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать заказ поставщику
+      tags:
+      - purchase-orders
+  /api/v1/purchase-orders/{id}:
+    get:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Заказ поставщику по ID
+      tags:
+      - purchase-orders
+  /api/v1/purchase-orders/{id}/cancel:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отменить заказ
+      tags:
+      - purchase-orders
+  /api/v1/purchase-orders/{id}/lines:
+    post:
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить строку заказа
+      tags:
+      - purchase-orders
+  /api/v1/purchase-orders/{id}/receive:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Принять товар по заказу
+      tags:
+      - purchase-orders
+  /api/v1/purchase-orders/{id}/release:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Утвердить заказ
+      tags:
+      - purchase-orders
+  /api/v1/purchase-orders/{id}/submit:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отправить заказ на согласование
+      tags:
+      - purchase-orders
+  /api/v1/purchase-orders/from-pr/{id}:
+    post:
+      parameters:
+      - description: UUID заявки
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать заказ из заявки
+      tags:
+      - purchase-orders
+  /api/v1/purchase-requests:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список заявок на закупку
+      tags:
+      - purchase-requests
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать заявку на закупку
+      tags:
+      - purchase-requests
+  /api/v1/purchase-requests/{id}:
+    get:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Заявка на закупку по ID
+      tags:
+      - purchase-requests
+  /api/v1/purchase-requests/{id}/cancel:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отменить заявку
+      tags:
+      - purchase-requests
+  /api/v1/purchase-requests/{id}/lines:
+    post:
+      parameters:
+      - description: UUID заявки
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить строку заявки
+      tags:
+      - purchase-requests
+  /api/v1/purchase-requests/{id}/submit:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отправить заявку на согласование
+      tags:
+      - purchase-requests
+  /api/v1/suppliers:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список поставщиков
+      tags:
+      - suppliers
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать поставщика
+      tags:
+      - suppliers
+  /api/v1/suppliers/{id}:
+    delete:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить поставщика
+      tags:
+      - suppliers
+    put:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить поставщика
+      tags:
+      - suppliers
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness
+      tags:
+      - system
+  /ready:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness
+      tags:
+      - system
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

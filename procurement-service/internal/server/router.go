@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/industrial-sed/procurement-service/internal/config"
 	"github.com/industrial-sed/procurement-service/internal/handlers"
@@ -44,6 +46,7 @@ func NewRouter(d Deps) *gin.Engine {
 	r.Use(middleware.PerIPRateLimit(d.Cfg.RateLimitPerMinute))
 
 	r.GET("/health", handlers.Health)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.GET("/ready", handlers.Ready(&handlers.HealthDeps{DB: d.DB}))
 
 	internal := r.Group("/api/v1/internal")

@@ -4,7 +4,7 @@
 //	@version		1.0
 //	@description	Электронный документооборот и интеграция со складом
 //	@host			localhost:8091
-//	@BasePath		/api/v1
+//	@BasePath		/
 //	@securityDefinitions.apikey BearerAuth
 //	@in				header
 //	@name			Authorization

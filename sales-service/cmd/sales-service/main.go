@@ -4,7 +4,7 @@
 //	@version		1.0
 //	@description	Продажи: SO→reserve→ship + согласование в СЭД
 //	@host			localhost:8094
-//	@BasePath		/api/v1
+//	@BasePath		/
 //	@securityDefinitions.apikey BearerAuth
 //	@in				header
 //	@name			Authorization
@@ -36,6 +36,8 @@ import (
 	"github.com/industrial-sed/sales-service/internal/repositories"
 	"github.com/industrial-sed/sales-service/internal/server"
 	"github.com/industrial-sed/sales-service/internal/usecases"
+
+	_ "github.com/industrial-sed/sales-service/docs"
 )
 
 func main() {

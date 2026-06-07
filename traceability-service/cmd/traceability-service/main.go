@@ -1,4 +1,13 @@
 // Package main точка входа traceability-service.
+//
+//	@title			Traceability Service API
+//	@version		1.0
+//	@description	Прослеживаемость партий и серийных номеров
+//	@host			localhost:8095
+//	@BasePath		/
+//	@securityDefinitions.apikey BearerAuth
+//	@in				header
+//	@name			Authorization
 package main
 
 import (
@@ -24,6 +33,8 @@ import (
 	"github.com/industrial-sed/traceability-service/internal/repositories"
 	"github.com/industrial-sed/traceability-service/internal/server"
 	"github.com/industrial-sed/traceability-service/internal/usecases"
+
+	_ "github.com/industrial-sed/traceability-service/docs"
 )
 
 func main() {

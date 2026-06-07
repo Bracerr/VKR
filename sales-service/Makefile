@@ -1,4 +1,4 @@
-.PHONY: run build test lint migrate-up up down
+.PHONY: run build test lint swagger migrate-up up down
 
 DB_DSN ?= postgres://sales:sales@localhost:5437/sales?sslmode=disable
 
@@ -14,6 +14,9 @@ test:
 
 lint:
 	golangci-lint run ./...
+
+swagger:
+	go run github.com/swaggo/swag/cmd/swag@v1.16.3 init -g cmd/sales-service/main.go -o docs
 
 migrate-up:
 	go run github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.1 -path migrations -database "$(DB_DSN)" up

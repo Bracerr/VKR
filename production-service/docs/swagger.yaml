@@ -1,0 +1,626 @@
+basePath: /
+host: localhost:8092
+info:
+  contact: {}
+  description: Производственный учёт (MES), BOM, техкарты, заказы, интеграция со складом
+    и СЭД
+  title: Production Service API
+  version: "1.0"
+paths:
+  /api/v1/boms:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список спецификаций
+      tags:
+      - bom
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать спецификацию
+      tags:
+      - bom
+  /api/v1/boms/{id}:
+    get:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Спецификация по ID
+      tags:
+      - bom
+    patch:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить спецификацию
+      tags:
+      - bom
+  /api/v1/boms/{id}/archive:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Архивировать спецификацию
+      tags:
+      - bom
+  /api/v1/boms/{id}/lines:
+    post:
+      parameters:
+      - description: UUID спецификации
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить строку спецификации
+      tags:
+      - bom
+  /api/v1/boms/{id}/lines/{line_id}:
+    delete:
+      parameters:
+      - description: UUID спецификации
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: UUID строки
+        in: path
+        name: line_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить строку спецификации
+      tags:
+      - bom
+  /api/v1/boms/{id}/submit:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Утвердить спецификацию
+      tags:
+      - bom
+  /api/v1/internal/sed-events:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Секрет сервиса
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+      summary: События от СЭД (internal)
+      tags:
+      - internal
+  /api/v1/me/shift-tasks:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Мои сменные задания
+      tags:
+      - shift-tasks
+  /api/v1/orders:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список производственных заказов
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать заказ
+      tags:
+      - orders
+  /api/v1/orders/{id}:
+    get:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Заказ по ID
+      tags:
+      - orders
+  /api/v1/orders/{id}/cancel:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отменить заказ
+      tags:
+      - orders
+  /api/v1/orders/{id}/complete:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Завершить заказ
+      tags:
+      - orders
+  /api/v1/orders/{id}/operations/{op_id}/finish:
+    post:
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: UUID операции
+        in: path
+        name: op_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Завершить операцию
+      tags:
+      - operations
+  /api/v1/orders/{id}/operations/{op_id}/report:
+    post:
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: UUID операции
+        in: path
+        name: op_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отчёт по операции
+      tags:
+      - operations
+  /api/v1/orders/{id}/operations/{op_id}/start:
+    post:
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: UUID операции
+        in: path
+        name: op_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Начать операцию
+      tags:
+      - operations
+  /api/v1/orders/{id}/release:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Выпустить заказ в производство
+      tags:
+      - orders
+  /api/v1/routings:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список техкарт
+      tags:
+      - routing
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать техкарту
+      tags:
+      - routing
+  /api/v1/routings/{id}:
+    get:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Техкарта по ID
+      tags:
+      - routing
+  /api/v1/routings/{id}/operations:
+    post:
+      parameters:
+      - description: UUID техкарты
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить операцию в техкарту
+      tags:
+      - routing
+  /api/v1/routings/{id}/submit:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Утвердить техкарту
+      tags:
+      - routing
+  /api/v1/scrap-reasons:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Причины брака
+      tags:
+      - scrap
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить причину брака
+      tags:
+      - scrap
+  /api/v1/shift-tasks:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Сменные задания
+      tags:
+      - shift-tasks
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать сменное задание
+      tags:
+      - shift-tasks
+  /api/v1/shift-tasks/{id}:
+    delete:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить сменное задание
+      tags:
+      - shift-tasks
+  /api/v1/workcenters:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список рабочих центров
+      tags:
+      - workcenters
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать рабочий центр
+      tags:
+      - workcenters
+  /api/v1/workcenters/{id}:
+    delete:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить рабочий центр
+      tags:
+      - workcenters
+    put:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить рабочий центр
+      tags:
+      - workcenters
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness
+      tags:
+      - system
+  /ready:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness
+      tags:
+      - system
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

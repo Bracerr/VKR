@@ -4,7 +4,7 @@
 //	@version		1.0
 //	@description	Закупки: PR→PO→приемка в склад + согласование в СЭД
 //	@host			localhost:8093
-//	@BasePath		/api/v1
+//	@BasePath		/
 //	@securityDefinitions.apikey BearerAuth
 //	@in				header
 //	@name			Authorization
@@ -36,6 +36,8 @@ import (
 	"github.com/industrial-sed/procurement-service/internal/repositories"
 	"github.com/industrial-sed/procurement-service/internal/server"
 	"github.com/industrial-sed/procurement-service/internal/usecases"
+
+	_ "github.com/industrial-sed/procurement-service/docs"
 )
 
 func main() {

@@ -1,0 +1,94 @@
+basePath: /
+host: localhost:8095
+info:
+  contact: {}
+  description: Прослеживаемость партий и серийных номеров
+  title: Traceability Service API
+  version: "1.0"
+paths:
+  /api/v1/internal/events:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Секрет сервиса
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+      summary: События от других сервисов (internal)
+      tags:
+      - internal
+  /api/v1/trace/graph:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Граф прослеживаемости
+      tags:
+      - trace
+  /api/v1/trace/search:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Поиск по прослеживаемости
+      tags:
+      - trace
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness
+      tags:
+      - system
+  /ready:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness
+      tags:
+      - system
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

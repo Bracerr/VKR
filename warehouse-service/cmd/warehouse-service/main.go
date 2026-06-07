@@ -4,7 +4,7 @@
 //	@version		1.0
 //	@description	Склад: справочники, операции, резервы, отчёты
 //	@host			localhost:8090
-//	@BasePath		/api/v1
+//	@BasePath		/
 //	@securityDefinitions.apikey BearerAuth
 //	@in				header
 //	@name			Authorization

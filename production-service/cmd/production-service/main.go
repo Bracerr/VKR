@@ -4,7 +4,7 @@
 //	@version		1.0
 //	@description	Производственный учёт (MES), BOM, техкарты, заказы, интеграция со складом и СЭД
 //	@host			localhost:8092
-//	@BasePath		/api/v1
+//	@BasePath		/
 //	@securityDefinitions.apikey BearerAuth
 //	@in				header
 //	@name			Authorization
@@ -36,6 +36,8 @@ import (
 	"github.com/industrial-sed/production-service/internal/repositories"
 	"github.com/industrial-sed/production-service/internal/server"
 	"github.com/industrial-sed/production-service/internal/usecases"
+
+	_ "github.com/industrial-sed/production-service/docs"
 )
 
 func main() {

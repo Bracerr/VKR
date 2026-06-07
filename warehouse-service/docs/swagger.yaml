@@ -1,11 +1,774 @@
-basePath: /api/v1
+basePath: /
 host: localhost:8090
 info:
   contact: {}
   description: 'Склад: справочники, операции, резервы, отчёты'
   title: Warehouse Service API
   version: "1.0"
-paths: {}
+paths:
+  /api/v1/balances:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Остатки
+      tags:
+      - reports
+  /api/v1/batches/{id}:
+    get:
+      parameters:
+      - description: UUID партии
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Партия по ID
+      tags:
+      - catalog
+  /api/v1/bins/{id}:
+    delete:
+      parameters:
+      - description: UUID ячейки
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить ячейку
+      tags:
+      - catalog
+    put:
+      parameters:
+      - description: UUID ячейки
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить ячейку
+      tags:
+      - catalog
+  /api/v1/export/movements.csv:
+    get:
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: Экспорт движений в CSV
+      tags:
+      - import
+  /api/v1/import/jobs/{id}:
+    get:
+      parameters:
+      - description: UUID задания
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Статус импорта
+      tags:
+      - import
+  /api/v1/import/products:
+    post:
+      consumes:
+      - multipart/form-data
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Импорт номенклатуры из CSV
+      tags:
+      - import
+  /api/v1/inventory:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Начать инвентаризацию
+      tags:
+      - inventory
+  /api/v1/inventory/{id}:
+    get:
+      parameters:
+      - description: UUID инвентаризации
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Инвентаризация по ID
+      tags:
+      - inventory
+  /api/v1/inventory/{id}/post:
+    post:
+      parameters:
+      - description: UUID инвентаризации
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Провести инвентаризацию
+      tags:
+      - inventory
+  /api/v1/inventory/lines/{line_id}:
+    patch:
+      parameters:
+      - description: UUID строки
+        in: path
+        name: line_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Указать фактическое количество
+      tags:
+      - inventory
+  /api/v1/movements:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Движения
+      tags:
+      - reports
+  /api/v1/operations/issue:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Расход
+      tags:
+      - operations
+  /api/v1/operations/issue-from-reservations:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Расход по резервам
+      tags:
+      - operations
+  /api/v1/operations/receipt:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Приход
+      tags:
+      - operations
+  /api/v1/operations/relocate:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Перемещение внутри склада
+      tags:
+      - operations
+  /api/v1/operations/transfer:
+    post:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Перемещение между складами
+      tags:
+      - operations
+  /api/v1/prices/{id}:
+    delete:
+      parameters:
+      - description: UUID цены
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить цену
+      tags:
+      - catalog
+  /api/v1/products:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список номенклатуры
+      tags:
+      - catalog
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать номенклатуру
+      tags:
+      - catalog
+  /api/v1/products/{id}:
+    delete:
+      parameters:
+      - description: UUID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить номенклатуру
+      tags:
+      - catalog
+    get:
+      parameters:
+      - description: UUID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Номенклатура по ID
+      tags:
+      - catalog
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: UUID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить номенклатуру
+      tags:
+      - catalog
+  /api/v1/products/{id}/prices:
+    get:
+      parameters:
+      - description: UUID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Цены товара
+      tags:
+      - catalog
+    post:
+      parameters:
+      - description: UUID товара
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить цену
+      tags:
+      - catalog
+  /api/v1/reports/abc:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: ABC-анализ
+      tags:
+      - reports
+  /api/v1/reports/average-cost:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Средняя себестоимость на дату
+      tags:
+      - reports
+  /api/v1/reports/expiring:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Истекающие партии
+      tags:
+      - reports
+  /api/v1/reports/price-on-date:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Цена на дату
+      tags:
+      - reports
+  /api/v1/reports/stock-on-date:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Остатки на дату
+      tags:
+      - reports
+  /api/v1/reports/turnover:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Оборотная ведомость
+      tags:
+      - reports
+  /api/v1/reservations:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список резервов
+      tags:
+      - reservations
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать резерв
+      tags:
+      - reservations
+  /api/v1/reservations/{id}:
+    get:
+      parameters:
+      - description: UUID резерва
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Резерв по ID
+      tags:
+      - reservations
+  /api/v1/reservations/{id}/consume:
+    post:
+      parameters:
+      - description: UUID резерва
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Списать резерв
+      tags:
+      - reservations
+  /api/v1/reservations/{id}/release:
+    post:
+      parameters:
+      - description: UUID резерва
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Снять резерв
+      tags:
+      - reservations
+  /api/v1/serials:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Серийные номера
+      tags:
+      - catalog
+  /api/v1/serials/{id}/history:
+    get:
+      parameters:
+      - description: UUID серии
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: История серийного номера
+      tags:
+      - catalog
+  /api/v1/warehouses:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список складов
+      tags:
+      - catalog
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать склад
+      tags:
+      - catalog
+  /api/v1/warehouses/{id}:
+    delete:
+      parameters:
+      - description: UUID склада
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить склад
+      tags:
+      - catalog
+    put:
+      parameters:
+      - description: UUID склада
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить склад
+      tags:
+      - catalog
+  /api/v1/warehouses/{warehouse_id}/bins:
+    get:
+      parameters:
+      - description: UUID склада
+        in: path
+        name: warehouse_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Ячейки склада
+      tags:
+      - catalog
+    post:
+      parameters:
+      - description: UUID склада
+        in: path
+        name: warehouse_id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать ячейку
+      tags:
+      - catalog
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness
+      tags:
+      - system
+  /ready:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness
+      tags:
+      - system
 securityDefinitions:
   BearerAuth:
     in: header

@@ -1,11 +1,659 @@
-basePath: /api/v1
+basePath: /
 host: localhost:8091
 info:
   contact: {}
   description: Электронный документооборот и интеграция со складом
   title: SED Service API
   version: "1.0"
-paths: {}
+paths:
+  /api/v1/document-types:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список типов документов
+      tags:
+      - catalog
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать тип документа
+      tags:
+      - catalog
+  /api/v1/document-types/{id}:
+    delete:
+      parameters:
+      - description: UUID типа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить тип документа
+      tags:
+      - catalog
+    get:
+      parameters:
+      - description: UUID типа
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Тип документа по ID
+      tags:
+      - catalog
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: UUID типа
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить тип документа
+      tags:
+      - catalog
+  /api/v1/documents:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список документов
+      tags:
+      - documents
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать документ
+      tags:
+      - documents
+  /api/v1/documents/{id}:
+    get:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Документ по ID
+      tags:
+      - documents
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Изменить черновик документа
+      tags:
+      - documents
+  /api/v1/documents/{id}/approve:
+    post:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Согласовать документ
+      tags:
+      - tasks
+  /api/v1/documents/{id}/cancel:
+    post:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отменить документ
+      tags:
+      - documents
+  /api/v1/documents/{id}/files:
+    get:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Файлы документа
+      tags:
+      - files
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Загрузить файл к документу
+      tags:
+      - files
+  /api/v1/documents/{id}/files/{file_id}:
+    delete:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: UUID файла
+        in: path
+        name: file_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить файл документа
+      tags:
+      - files
+    get:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: UUID файла
+        in: path
+        name: file_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: Скачать файл документа
+      tags:
+      - files
+  /api/v1/documents/{id}/history:
+    get:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: История документа
+      tags:
+      - documents
+  /api/v1/documents/{id}/reject:
+    post:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отклонить документ
+      tags:
+      - tasks
+  /api/v1/documents/{id}/sign:
+    post:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Подписать документ
+      tags:
+      - documents
+  /api/v1/documents/{id}/submit:
+    post:
+      parameters:
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отправить документ на согласование
+      tags:
+      - documents
+  /api/v1/internal/rag/corpus:
+    get:
+      parameters:
+      - description: служебный секрет
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      - description: код тенанта
+        in: header
+        name: X-Tenant-Id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Корпус документов для RAG (internal)
+      tags:
+      - internal-rag
+  /api/v1/internal/rag/documents/{id}/content:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: служебный секрет
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      - description: код тенанта
+        in: header
+        name: X-Tenant-Id
+        required: true
+        type: string
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Задать rag_content документа (internal)
+      tags:
+      - internal-rag
+  /api/v1/internal/rag/documents/{id}/files/{file_id}:
+    get:
+      parameters:
+      - description: служебный секрет
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      - description: код тенанта
+        in: header
+        name: X-Tenant-Id
+        required: true
+        type: string
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: UUID файла
+        in: path
+        name: file_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      summary: Скачать файл для RAG (internal)
+      tags:
+      - internal-rag
+  /api/v1/internal/rag/documents/{id}/fixture:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: служебный секрет
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      - description: код тенанта
+        in: header
+        name: X-Tenant-Id
+        required: true
+        type: string
+      - description: UUID документа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить fixture документа (internal)
+      tags:
+      - internal-rag
+  /api/v1/tasks:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Задачи согласования
+      tags:
+      - tasks
+  /api/v1/workflow-steps/{id}:
+    delete:
+      parameters:
+      - description: UUID шага
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить шаг маршрута
+      tags:
+      - catalog
+  /api/v1/workflows:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список маршрутов согласования
+      tags:
+      - catalog
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать маршрут согласования
+      tags:
+      - catalog
+  /api/v1/workflows/{id}:
+    delete:
+      parameters:
+      - description: UUID маршрута
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить маршрут
+      tags:
+      - catalog
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: UUID маршрута
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить маршрут
+      tags:
+      - catalog
+  /api/v1/workflows/{id}/steps:
+    get:
+      parameters:
+      - description: UUID маршрута
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Шаги маршрута
+      tags:
+      - catalog
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: UUID маршрута
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить шаг маршрута
+      tags:
+      - catalog
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness
+      tags:
+      - system
+  /ready:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness
+      tags:
+      - system
 securityDefinitions:
   BearerAuth:
     in: header

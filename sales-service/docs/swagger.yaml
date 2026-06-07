@@ -1,0 +1,291 @@
+basePath: /
+host: localhost:8094
+info:
+  contact: {}
+  description: 'Продажи: SO→reserve→ship + согласование в СЭД'
+  title: Sales Service API
+  version: "1.0"
+paths:
+  /api/v1/customers:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список клиентов
+      tags:
+      - customers
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать клиента
+      tags:
+      - customers
+  /api/v1/customers/{id}:
+    delete:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Удалить клиента
+      tags:
+      - customers
+    put:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить клиента
+      tags:
+      - customers
+  /api/v1/internal/sed-events:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Секрет сервиса
+        in: header
+        name: X-Service-Secret
+        required: true
+        type: string
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            additionalProperties: true
+            type: object
+      summary: События от СЭД (internal)
+      tags:
+      - internal
+  /api/v1/sales-orders:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список заказов на продажу
+      tags:
+      - sales-orders
+    post:
+      consumes:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать заказ на продажу
+      tags:
+      - sales-orders
+  /api/v1/sales-orders/{id}:
+    get:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Заказ на продажу по ID
+      tags:
+      - sales-orders
+  /api/v1/sales-orders/{id}/cancel:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отменить заказ
+      tags:
+      - sales-orders
+  /api/v1/sales-orders/{id}/lines:
+    post:
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Добавить строку заказа
+      tags:
+      - sales-orders
+  /api/v1/sales-orders/{id}/release:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Утвердить заказ
+      tags:
+      - sales-orders
+  /api/v1/sales-orders/{id}/reserve:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Зарезервировать товар по заказу
+      tags:
+      - sales-orders
+  /api/v1/sales-orders/{id}/ship:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отгрузить заказ
+      tags:
+      - sales-orders
+  /api/v1/sales-orders/{id}/submit:
+    post:
+      parameters:
+      - description: UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отправить заказ на согласование
+      tags:
+      - sales-orders
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness
+      tags:
+      - system
+  /ready:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness
+      tags:
+      - system
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
