@@ -187,9 +187,13 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// CookieSecure — в проде true при HTTPS.
+// CookieSecure — Secure только если публичный API доступен по HTTPS (куда браузер приходит на callback).
 func (c *Config) CookieSecure() bool {
-	return strings.HasPrefix(c.FrontendURL, "https://")
+	u, err := url.Parse(strings.TrimSpace(c.APIPublicURL))
+	if err != nil || u.Scheme == "" {
+		return false
+	}
+	return strings.EqualFold(u.Scheme, "https")
 }
 
 // validateKeycloakPublicURLForBrowser отсекает типичную ошибку Docker: KEYCLOAK_PUBLIC_URL совпал с

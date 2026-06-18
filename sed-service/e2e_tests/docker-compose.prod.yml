@@ -16,7 +16,7 @@ services:
       # Должны совпадать с URL в браузере (не localhost, если заходите с другой машины).
       KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:?set KEYCLOAK_PUBLIC_URL in .env e.g. http://85.236.191.21:52556}
       API_PUBLIC_URL: ${API_PUBLIC_URL:?set API_PUBLIC_URL in .env e.g. http://85.236.191.21:52556}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-https://ds-erp-client.vercel.app}
       # Создание пользователей не должно падать из‑за Kafka (иначе rag-seed: 500).
       NOTIFIER_TYPE: ${NOTIFIER_TYPE:-mock}
       # Демо-пользователь с полным набором ролей тенанта (после появления ragcorp в БД).
