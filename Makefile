@@ -19,7 +19,7 @@ SERVICES := auth-service warehouse-service sed-service production-service \
 
 .PHONY: test-up test-down test-ps test-logs test-build test-config \
 	prod-up prod-down prod-ps prod-logs prod-build prod-config \
-	test-unit test-e2e test-all seed-rag seed-rag-teardown test-rag-fixtures test-e2e-rag
+	test-unit test-e2e test-all seed-rag seed-rag-teardown seed-test-users test-rag-fixtures test-e2e-rag
 
 test-unit:
 	@for s in $(SERVICES); do \
@@ -80,6 +80,11 @@ seed-rag:
 
 seed-rag-teardown:
 	cd $(ROOT) && RAG_FIXTURES_ENABLED=true python3 scripts/seed_rag_fixtures.py --teardown
+
+# Тестовые пользователи test1@testN (полный и частичный доступ). На проде:
+# AUTH_BASE_URL=http://85.236.191.21:52556 make seed-test-users
+seed-test-users:
+	cd $(ROOT) && python3 scripts/seed_test_users.py
 
 test-rag-fixtures:
 	cd $(ROOT)/sed-service/e2e_tests && \

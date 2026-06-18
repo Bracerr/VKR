@@ -1,0 +1,97 @@
+{
+  "tenant": "ragcorp",
+  "password": "test1234",
+  "users": [
+    {
+      "username": "test1",
+      "login": "test1@ragcorp",
+      "roles": [
+        "ent_admin",
+        "approver",
+        "engineer",
+        "viewer",
+        "warehouse_admin",
+        "storekeeper",
+        "warehouse_viewer",
+        "sed_admin",
+        "sed_author",
+        "sed_approver",
+        "sed_viewer",
+        "doc_read_procurement",
+        "doc_read_sales",
+        "doc_read_production",
+        "doc_read_warehouse",
+        "doc_read_finance",
+        "doc_write_procurement",
+        "doc_write_sales",
+        "doc_write_production",
+        "prod_admin",
+        "prod_technologist",
+        "prod_planner",
+        "prod_master",
+        "prod_worker",
+        "prod_qc",
+        "prod_viewer",
+        "proc_admin",
+        "proc_buyer",
+        "proc_approver",
+        "proc_viewer",
+        "sales_admin",
+        "sales_manager",
+        "sales_approver",
+        "sales_viewer"
+      ],
+      "password": "test1234",
+      "description": "Полный доступ ко всем модулям тенанта (как vkr_demo)"
+    },
+    {
+      "username": "test2",
+      "login": "test2@ragcorp",
+      "roles": [
+        "storekeeper",
+        "warehouse_viewer",
+        "doc_read_warehouse"
+      ],
+      "password": "test1234",
+      "description": "Склад: операции и чтение остатков, без продаж/закупок"
+    },
+    {
+      "username": "test3",
+      "login": "test3@ragcorp",
+      "roles": [
+        "sales_manager",
+        "doc_read_sales",
+        "doc_write_sales",
+        "sed_author",
+        "sed_viewer"
+      ],
+      "password": "test1234",
+      "description": "Продажи: заказы клиентов и документы продаж, без склада и закупок"
+    },
+    {
+      "username": "test4",
+      "login": "test4@ragcorp",
+      "roles": [
+        "proc_buyer",
+        "doc_read_procurement",
+        "doc_write_procurement",
+        "sed_approver"
+      ],
+      "password": "test1234",
+      "description": "Закупки: PR/PO и согласование, без продаж и склада"
+    },
+    {
+      "username": "test5",
+      "login": "test5@ragcorp",
+      "roles": [
+        "sed_viewer",
+        "warehouse_viewer",
+        "proc_viewer",
+        "sales_viewer",
+        "prod_viewer"
+      ],
+      "password": "test1234",
+      "description": "Только чтение во всех модулях"
+    }
+  ]
+}
